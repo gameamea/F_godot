@@ -468,7 +468,7 @@ void GDScriptTokenizerText::_make_newline(int p_indentation, int p_tabs) {
 	tk.line = line;
 	tk.col = column;
 	tk.code_pos = code_pos;
-	tk.code_len = p_spaces + 1;
+	tk.code_len = p_indentation + 1;
 	tk_rb_pos = (tk_rb_pos + 1) % TK_RB_SIZE;
 }
 
@@ -582,6 +582,7 @@ void GDScriptTokenizerText::_advance() {
 
 				switch (GETCHAR(1)) {
 					case '=': { // diveq
+
 						_make_token(TK_OP_ASSIGN_DIV, 2);
 						INCPOS(1);
 
@@ -601,6 +602,7 @@ void GDScriptTokenizerText::_advance() {
 			} break;
 			case '<': {
 				if (GETCHAR(1) == '=') {
+
 					_make_token(TK_OP_LESS_EQUAL, 2);
 					INCPOS(1);
 				} else if (GETCHAR(1) == '<') {
@@ -875,6 +877,7 @@ void GDScriptTokenizerText::_advance() {
 					}
 					i++;
 				}
+				INCPOS(i);
 
 				if (is_node_path) {
 					_make_constant(NodePath(str), i);
@@ -959,6 +962,7 @@ void GDScriptTokenizerText::_advance() {
 						return;
 					}
 
+					INCPOS(i);
 					if (hexa_found) {
 						int64_t val = str.hex_to_int64();
 						_make_constant(val, i);
@@ -1030,6 +1034,7 @@ void GDScriptTokenizerText::_advance() {
 							for (int j = 0; j < GDScriptFunctions::FUNC_MAX; j++) {
 
 								if (str == GDScriptFunctions::get_func_name(GDScriptFunctions::Function(j))) {
+
 									_make_built_in_func(GDScriptFunctions::Function(j), i);
 									found = true;
 									break;
