@@ -206,12 +206,12 @@ class GDScriptTokenizerText : public GDScriptTokenizer {
 		}
 	};
 
-	void _make_token(Token p_type, int p_code_len);
+	void _make_token(Token p_type, int p_code_len = 1);
 	void _make_newline(int p_indentation = 0, int p_tabs = 0);
-	void _make_identifier(const StringName &p_identifier, int p_code_len);
-	void _make_built_in_func(GDScriptFunctions::Function p_func, int p_code_len);
-	void _make_constant(const Variant &p_constant, int p_code_len);
-	void _make_type(const Variant::Type &p_type, int p_code_len);
+	void _make_identifier(const StringName &p_identifier, int p_code_len = 1);
+	void _make_built_in_func(GDScriptFunctions::Function p_func, int p_code_len = 1);
+	void _make_constant(const Variant &p_constant, int p_code_len = 1);
+	void _make_type(const Variant::Type &p_type, int p_code_len = 1);
 	void _make_error(const String &p_error);
 
 	String code;

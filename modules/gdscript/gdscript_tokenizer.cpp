@@ -468,7 +468,7 @@ void GDScriptTokenizerText::_make_newline(int p_indentation, int p_tabs) {
 	tk.line = line;
 	tk.col = column;
 	tk.code_pos = code_pos;
-	tk.code_len = p_indentation + 1;
+	tk.code_len = p_indentation + p_tabs + 1; //here
 	tk_rb_pos = (tk_rb_pos + 1) % TK_RB_SIZE;
 }
 
@@ -554,28 +554,29 @@ void GDScriptTokenizerText::_advance() {
 			}
 			case '\n': {
 				line++;
-				INCPOS(1);
-				bool used_spaces = false;
-				int tabs = 0;
 				column = 1;
 				int i = 0;
 				while (true) {
-					if (GETCHAR(i) == ' ') {
-						i++;
-						used_spaces = true;
-					} else if (GETCHAR(i) == '\t') {
-						if (used_spaces) {
-							_make_error("Spaces used before tabs on a line");
+					if (GETCHAR(i + 1) == ' ') {
+						if (file_indent_type == INDENT_NONE) file_indent_type = INDENT_SPACES;
+						if (file_indent_type != INDENT_SPACES) {
+							_make_error("Spaces used for indentation in tab-indented file!");
 							return;
 						}
-						i++;
-						tabs++;
+					} else if (GETCHAR(i + 1) == '\t') {
+						if (file_indent_type == INDENT_NONE) file_indent_type = INDENT_TABS;
+						if (file_indent_type != INDENT_TABS) {
+							_make_error("Tabs used for indentation in space-indented file!");
+							return;
+						}
 					} else {
 						break; // not indentation anymore
 					}
+					i++;
 				}
 
-				_make_newline(i, tabs);
+				_make_newline(i);
+				INCPOS(i + 1)
 				return;
 			}
 			case '/': {
@@ -962,7 +963,6 @@ void GDScriptTokenizerText::_advance() {
 						return;
 					}
 
-					INCPOS(i);
 					if (hexa_found) {
 						int64_t val = str.hex_to_int64();
 						_make_constant(val, i);
