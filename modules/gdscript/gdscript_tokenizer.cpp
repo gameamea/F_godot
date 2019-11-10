@@ -468,7 +468,7 @@ void GDScriptTokenizerText::_make_newline(int p_indentation, int p_tabs) {
 	tk.line = line;
 	tk.col = column;
 	tk.code_pos = code_pos;
-	tk.code_len = p_spaces + 1;
+	tk.code_len = p_indentation + p_tabs + 1; //here
 	tk_rb_pos = (tk_rb_pos + 1) % TK_RB_SIZE;
 }
 
@@ -554,34 +554,36 @@ void GDScriptTokenizerText::_advance() {
 			}
 			case '\n': {
 				line++;
-				INCPOS(1);
-				bool used_spaces = false;
-				int tabs = 0;
 				column = 1;
 				int i = 0;
 				while (true) {
-					if (GETCHAR(i) == ' ') {
-						i++;
-						used_spaces = true;
-					} else if (GETCHAR(i) == '\t') {
-						if (used_spaces) {
-							_make_error("Spaces used before tabs on a line");
+					if (GETCHAR(i + 1) == ' ') {
+						if (file_indent_type == INDENT_NONE) file_indent_type = INDENT_SPACES;
+						if (file_indent_type != INDENT_SPACES) {
+							_make_error("Spaces used for indentation in tab-indented file!");
 							return;
 						}
-						i++;
-						tabs++;
+					} else if (GETCHAR(i + 1) == '\t') {
+						if (file_indent_type == INDENT_NONE) file_indent_type = INDENT_TABS;
+						if (file_indent_type != INDENT_TABS) {
+							_make_error("Tabs used for indentation in space-indented file!");
+							return;
+						}
 					} else {
 						break; // not indentation anymore
 					}
+					i++;
 				}
 
-				_make_newline(i, tabs);
+				_make_newline(i);
+				INCPOS(i + 1)
 				return;
 			}
 			case '/': {
 
 				switch (GETCHAR(1)) {
 					case '=': { // diveq
+
 						_make_token(TK_OP_ASSIGN_DIV, 2);
 						INCPOS(1);
 
@@ -601,6 +603,7 @@ void GDScriptTokenizerText::_advance() {
 			} break;
 			case '<': {
 				if (GETCHAR(1) == '=') {
+
 					_make_token(TK_OP_LESS_EQUAL, 2);
 					INCPOS(1);
 				} else if (GETCHAR(1) == '<') {
@@ -875,6 +878,7 @@ void GDScriptTokenizerText::_advance() {
 					}
 					i++;
 				}
+				INCPOS(i);
 
 				if (is_node_path) {
 					_make_constant(NodePath(str), i);
@@ -1030,6 +1034,7 @@ void GDScriptTokenizerText::_advance() {
 							for (int j = 0; j < GDScriptFunctions::FUNC_MAX; j++) {
 
 								if (str == GDScriptFunctions::get_func_name(GDScriptFunctions::Function(j))) {
+
 									_make_built_in_func(GDScriptFunctions::Function(j), i);
 									found = true;
 									break;
