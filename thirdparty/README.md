@@ -4,7 +4,7 @@
 ## assimp
 
 - Upstream: http://github.com/assimp/assimp
-- Version: git (1d565b0aab5a2ee00462f18c5b8a81f6a5454a48)
+- Version: git (308db73d0b3c2d1870cd3e465eaa283692a4cf23)
 - License: BSD-3-Clause
 
 
@@ -534,7 +534,7 @@ Files extracted from upstream source:
 ## zstd
 
 - Upstream: https://github.com/facebook/zstd
-- Version: 1.4.1
+- Version: 1.4.4
 - License: BSD-3-Clause
 
 Files extracted from upstream source:
