@@ -229,6 +229,7 @@ Error EditorSceneImporterGLTF::_parse_scenes(GLTFState &state) {
 
 	ERR_FAIL_COND_V(!state.json.has("scenes"), ERR_FILE_CORRUPT);
 	const Array &scenes = state.json["scenes"];
+	ERR_FAIL_COND_V(!scenes.size(), ERR_FILE_CORRUPT);
 	for (int i = 0; i < 1; i++) { //only first scene is imported
 		const Dictionary &s = scenes[i];
 		ERR_FAIL_COND_V(!s.has("nodes"), ERR_UNAVAILABLE);
@@ -2356,6 +2357,7 @@ Error EditorSceneImporterGLTF::_parse_animations(GLTFState &state) {
 			const int output = s["output"];
 
 			GLTFAnimation::Interpolation interp = GLTFAnimation::INTERP_LINEAR;
+			int output_count = 1;
 			if (s.has("interpolation")) {
 				const String &in = s["interpolation"];
 				if (in == "STEP") {
@@ -2364,8 +2366,10 @@ Error EditorSceneImporterGLTF::_parse_animations(GLTFState &state) {
 					interp = GLTFAnimation::INTERP_LINEAR;
 				} else if (in == "CATMULLROMSPLINE") {
 					interp = GLTFAnimation::INTERP_CATMULLROMSPLINE;
+					output_count = 3;
 				} else if (in == "CUBICSPLINE") {
 					interp = GLTFAnimation::INTERP_CUBIC_SPLINE;
+					output_count = 3;
 				}
 			}
 
@@ -2394,6 +2398,9 @@ Error EditorSceneImporterGLTF::_parse_animations(GLTFState &state) {
 				const int wc = mesh->blend_weights.size();
 
 				track->weight_tracks.resize(wc);
+
+				const int expected_value_count = times.size() * output_count * wc;
+				ERR_FAIL_COND_V_MSG(weights.size() != expected_value_count, ERR_PARSE_ERROR, "Invalid weight data, expected " + itos(expected_value_count) + " weight values, got " + itos(weights.size()) + " instead.");
 
 				const int wlen = weights.size() / wc;
 				PoolVector<float>::Read r = weights.read();
@@ -2493,9 +2500,9 @@ Camera *EditorSceneImporterGLTF::_generate_camera(GLTFState &state, Node *scene_
 
 	const GLTFCamera &c = state.cameras[gltf_node->camera];
 	if (c.perspective) {
-		camera->set_perspective(c.fov_size, c.znear, c.znear);
+		camera->set_perspective(c.fov_size, c.znear, c.zfar);
 	} else {
-		camera->set_orthogonal(c.fov_size, c.znear, c.znear);
+		camera->set_orthogonal(c.fov_size, c.znear, c.zfar);
 	}
 
 	return camera;
