@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -744,6 +744,14 @@ static bool _guess_expression_type(GDScriptCompletionContext &p_context, const G
 			r_type.type.kind = GDScriptParser::DataType::BUILTIN;
 			r_type.type.builtin_type = Variant::ARRAY;
 		} break;
+		case GDScriptParser::Node::TYPE_CAST: {
+			const GDScriptParser::CastNode *cn = static_cast<const GDScriptParser::CastNode *>(p_expression);
+			GDScriptCompletionIdentifier value;
+			if (_guess_expression_type(p_context, cn->source_node, r_type)) {
+				r_type.type = cn->get_datatype();
+				found = true;
+			}
+		} break;
 		case GDScriptParser::Node::TYPE_OPERATOR: {
 			const GDScriptParser::OperatorNode *op = static_cast<const GDScriptParser::OperatorNode *>(p_expression);
 			switch (op->op) {
@@ -1232,6 +1240,9 @@ static bool _guess_identifier_type(GDScriptCompletionContext &p_context, const S
 		c.line = last_assign_line;
 		r_type.assigned_expression = last_assigned_expression;
 		if (_guess_expression_type(c, last_assigned_expression, r_type)) {
+			if (var_type.has_type) {
+				r_type.type = var_type;
+			}
 			return true;
 		}
 	}

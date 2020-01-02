@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -36,6 +36,7 @@
 #include "core/os/keyboard.h"
 #include "core/project_settings.h"
 #include "editor/animation_track_editor.h"
+#include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
 
 // For onion skinning.
@@ -85,6 +86,9 @@ void AnimationPlayerEditor::_notification(int p_what) {
 				track_editor->set_anim_pos(player->get_current_animation_position());
 				EditorNode::get_singleton()->get_inspector()->refresh();
 
+			} else if (!player->is_valid()) {
+				// Reset timeline when the player has been stopped externally
+				frame->set_value(0);
 			} else if (last_active) {
 				// Need the last frame after it stopped.
 				frame->set_value(player->get_current_animation_position());
@@ -1088,8 +1092,6 @@ void AnimationPlayerEditor::_animation_key_editor_seek(float p_pos, bool p_drag)
 
 	if (!player->has_animation(player->get_assigned_animation()))
 		return;
-
-	Ref<Animation> anim = player->get_animation(player->get_assigned_animation());
 
 	updating = true;
 	frame->set_value(Math::stepify(p_pos, _get_editor_step()));

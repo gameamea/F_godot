@@ -1,3 +1,33 @@
+/*************************************************************************/
+/*  gd_mono_cache.h                                                      */
+/*************************************************************************/
+/*                       This file is part of:                           */
+/*                           GODOT ENGINE                                */
+/*                      https://godotengine.org                          */
+/*************************************************************************/
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/*                                                                       */
+/* Permission is hereby granted, free of charge, to any person obtaining */
+/* a copy of this software and associated documentation files (the       */
+/* "Software"), to deal in the Software without restriction, including   */
+/* without limitation the rights to use, copy, modify, merge, publish,   */
+/* distribute, sublicense, and/or sell copies of the Software, and to    */
+/* permit persons to whom the Software is furnished to do so, subject to */
+/* the following conditions:                                             */
+/*                                                                       */
+/* The above copyright notice and this permission notice shall be        */
+/* included in all copies or substantial portions of the Software.       */
+/*                                                                       */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF    */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.*/
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY  */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,  */
+/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
+/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
+/*************************************************************************/
+
 #ifndef GD_MONO_CACHE_H
 #define GD_MONO_CACHE_H
 
@@ -12,20 +42,20 @@ struct CachedData {
 	// corlib classes
 
 	// Let's use the no-namespace format for these too
-	GDMonoClass *class_MonoObject;
-	GDMonoClass *class_bool;
-	GDMonoClass *class_int8_t;
-	GDMonoClass *class_int16_t;
-	GDMonoClass *class_int32_t;
-	GDMonoClass *class_int64_t;
-	GDMonoClass *class_uint8_t;
-	GDMonoClass *class_uint16_t;
-	GDMonoClass *class_uint32_t;
-	GDMonoClass *class_uint64_t;
-	GDMonoClass *class_float;
-	GDMonoClass *class_double;
-	GDMonoClass *class_String;
-	GDMonoClass *class_IntPtr;
+	GDMonoClass *class_MonoObject; // object
+	GDMonoClass *class_bool; // bool
+	GDMonoClass *class_int8_t; // sbyte
+	GDMonoClass *class_int16_t; // short
+	GDMonoClass *class_int32_t; // int
+	GDMonoClass *class_int64_t; // long
+	GDMonoClass *class_uint8_t; // byte
+	GDMonoClass *class_uint16_t; // ushort
+	GDMonoClass *class_uint32_t; // uint
+	GDMonoClass *class_uint64_t; // ulong
+	GDMonoClass *class_float; // float
+	GDMonoClass *class_double; // double
+	GDMonoClass *class_String; // string
+	GDMonoClass *class_IntPtr; // System.IntPtr
 
 	GDMonoClass *class_System_Collections_IEnumerable;
 	GDMonoClass *class_System_Collections_IDictionary;

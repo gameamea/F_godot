@@ -1,3 +1,33 @@
+/*************************************************************************/
+/*  PermissionsUtil.java                                                 */
+/*************************************************************************/
+/*                       This file is part of:                           */
+/*                           GODOT ENGINE                                */
+/*                      https://godotengine.org                          */
+/*************************************************************************/
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/*                                                                       */
+/* Permission is hereby granted, free of charge, to any person obtaining */
+/* a copy of this software and associated documentation files (the       */
+/* "Software"), to deal in the Software without restriction, including   */
+/* without limitation the rights to use, copy, modify, merge, publish,   */
+/* distribute, sublicense, and/or sell copies of the Software, and to    */
+/* permit persons to whom the Software is furnished to do so, subject to */
+/* the following conditions:                                             */
+/*                                                                       */
+/* The above copyright notice and this permission notice shall be        */
+/* included in all copies or substantial portions of the Software.       */
+/*                                                                       */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,       */
+/* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF    */
+/* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.*/
+/* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY  */
+/* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,  */
+/* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE     */
+/* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
+/*************************************************************************/
+
 package org.godotengine.godot.utils;
 
 import android.Manifest;
@@ -71,7 +101,7 @@ public final class PermissionsUtil {
 			return false;
 		}
 
-		if (manifestPermissions == null || manifestPermissions.length == 0)
+		if (manifestPermissions.length == 0)
 			return true;
 
 		List<String> dangerousPermissions = new ArrayList<>();
@@ -111,8 +141,8 @@ public final class PermissionsUtil {
 			e.printStackTrace();
 			return new String[0];
 		}
-		if (manifestPermissions == null || manifestPermissions.length == 0)
-			return new String[0];
+		if (manifestPermissions.length == 0)
+			return manifestPermissions;
 
 		List<String> dangerousPermissions = new ArrayList<>();
 		for (String manifestPermission : manifestPermissions) {
@@ -132,6 +162,24 @@ public final class PermissionsUtil {
 	}
 
 	/**
+	 * Check if the given permission is in the AndroidManifest.xml file.
+	 * @param activity the caller activity for this method.
+	 * @param permission the permession to look for in the manifest file.
+	 * @return "true" if the permission is in the manifest file of the activity, "false" otherwise.
+	 */
+	public static boolean hasManifestPermission(Godot activity, String permission) {
+		try {
+			for (String p : getManifestPermissions(activity)) {
+				if (permission.equals(p))
+					return true;
+			}
+		} catch (PackageManager.NameNotFoundException e) {
+		}
+
+		return false;
+	}
+
+	/**
 	 * Returns the permissions defined in the AndroidManifest.xml file.
 	 * @param activity the caller activity for this method.
 	 * @return manifest permissions list
@@ -140,6 +188,8 @@ public final class PermissionsUtil {
 	private static String[] getManifestPermissions(Godot activity) throws PackageManager.NameNotFoundException {
 		PackageManager packageManager = activity.getPackageManager();
 		PackageInfo packageInfo = packageManager.getPackageInfo(activity.getPackageName(), PackageManager.GET_PERMISSIONS);
+		if (packageInfo.requestedPermissions == null)
+			return new String[0];
 		return packageInfo.requestedPermissions;
 	}
 

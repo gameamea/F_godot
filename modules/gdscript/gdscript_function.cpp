@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -764,15 +764,17 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 				GET_VARIANT_PTR(dst, 2);
 				GET_VARIANT_PTR(src, 3);
 
-#ifdef DEBUG_ENABLED
 				Variant::Type var_type = (Variant::Type)_code_ptr[ip + 1];
 				GD_ERR_BREAK(var_type < 0 || var_type >= Variant::VARIANT_MAX);
 
 				if (src->get_type() != var_type) {
+#ifdef DEBUG_ENABLED
 					if (Variant::can_convert_strict(src->get_type(), var_type)) {
+#endif // DEBUG_ENABLED
 						Variant::CallError ce;
 						*dst = Variant::construct(var_type, const_cast<const Variant **>(&src), 1, ce);
 					} else {
+#ifdef DEBUG_ENABLED
 						err_text = "Trying to assign value of type '" + Variant::get_type_name(src->get_type()) +
 								   "' to a variable of type '" + Variant::get_type_name(var_type) + "'.";
 						OPCODE_BREAK;
@@ -780,9 +782,7 @@ Variant GDScriptFunction::call(GDScriptInstance *p_instance, const Variant **p_a
 				} else {
 #endif // DEBUG_ENABLED
 					*dst = *src;
-#ifdef DEBUG_ENABLED
 				}
-#endif // DEBUG_ENABLED
 
 				ip += 4;
 			}

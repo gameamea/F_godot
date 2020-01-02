@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -113,21 +113,6 @@ static Vector2 get_mouse_pos(NSPoint locationInWindow, CGFloat backingScaleFacto
 	mouse_x = p.x * s;
 	mouse_y = (contentRect.size.height - p.y) * s;
 	return Vector2(mouse_x, mouse_y);
-}
-
-// DisplayLinkCallback is called from our DisplayLink OS thread informing us right before
-// a screen update is required. We can use it to work around the broken vsync.
-static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
-	OS_OSX *os = (OS_OSX *)displayLinkContext;
-
-	// Set flag so we know we can output our next frame and signal our conditional lock
-	// if we're not doing vsync this will be ignored
-	[os->vsync_condition lock];
-	os->waiting_for_vsync = false;
-	[os->vsync_condition signal];
-	[os->vsync_condition unlock];
-
-	return kCVReturnSuccess;
 }
 
 @interface GodotApplication : NSApplication
@@ -355,12 +340,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 		//Update context
 		if (OS_OSX::singleton->main_loop) {
-			[OS_OSX::singleton->context update];
-
-			//Force window resize ???
-			NSRect frame = [OS_OSX::singleton->window_object frame];
-			[OS_OSX::singleton->window_object setFrame:NSMakeRect(frame.origin.x, frame.origin.y, 1, 1) display:YES];
-			[OS_OSX::singleton->window_object setFrame:frame display:YES];
+			//Force window resize event
+			[self windowDidResize:notification];
 		}
 	}
 }
@@ -1581,15 +1562,6 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 
 	[context makeCurrentContext];
 
-	// setup our display link, this will inform us when a refresh is needed
-	CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
-	CVDisplayLinkSetOutputCallback(displayLink, &DisplayLinkCallback, this);
-	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(displayLink, context.CGLContextObj, pixelFormat.CGLPixelFormatObj);
-	CVDisplayLinkStart(displayLink);
-
-	// initialise a conditional lock object
-	vsync_condition = [[NSCondition alloc] init];
-
 	set_use_vsync(p_desired.use_vsync);
 
 	[NSApp activateIgnoringOtherApps:YES];
@@ -1656,8 +1628,6 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	visual_server->init();
 	AudioDriverManager::initialize(p_audio_driver);
 
-	camera_server = memnew(CameraOSX);
-
 	input = memnew(InputDefault);
 	joypad_osx = memnew(JoypadOSX);
 
@@ -1682,20 +1652,10 @@ void OS_OSX::finalize() {
 	midi_driver.close();
 #endif
 
-	if (displayLink) {
-		CVDisplayLinkRelease(displayLink);
-	}
-	[vsync_condition release];
-
 	CFNotificationCenterRemoveObserver(CFNotificationCenterGetDistributedCenter(), NULL, kTISNotifySelectedKeyboardInputSourceChanged, NULL);
 	CGDisplayRemoveReconfigurationCallback(displays_arrangement_changed, NULL);
 
 	delete_main_loop();
-
-	if (camera_server) {
-		memdelete(camera_server);
-		camera_server = NULL;
-	}
 
 	memdelete(joypad_osx);
 	memdelete(input);
@@ -2253,23 +2213,11 @@ Error OS_OSX::shell_open(String p_uri) {
 }
 
 String OS_OSX::get_locale() const {
-	NSString *locale_code = [[NSLocale currentLocale] localeIdentifier];
+	NSString *locale_code = [[NSLocale preferredLanguages] objectAtIndex:0];
 	return [locale_code UTF8String];
 }
 
 void OS_OSX::swap_buffers() {
-	if (is_vsync_enabled()) {
-		// Wait until our DisplayLink callback unsets our flag...
-		[vsync_condition lock];
-		while (waiting_for_vsync)
-			[vsync_condition wait];
-
-		// Make sure we wait again next frame around
-		waiting_for_vsync = true;
-
-		[vsync_condition unlock];
-	}
-
 	[context flushBuffer];
 }
 
@@ -3009,20 +2957,11 @@ Error OS_OSX::move_to_trash(const String &p_path) {
 }
 
 void OS_OSX::_set_use_vsync(bool p_enable) {
-	// CGLCPSwapInterval broke in OSX 10.14 and it seems Apple is not interested in fixing
-	// it as OpenGL is now deprecated and Metal solves this differently.
-	// Following SDLs example we're working around this using DisplayLink
-	// When vsync is enabled we set a flag "waiting_for_vsync" to true.
-	// This flag is set to false when DisplayLink informs us our display is about to refresh.
-
-	/*	CGLContextObj ctx = CGLGetCurrentContext();
+	CGLContextObj ctx = CGLGetCurrentContext();
 	if (ctx) {
 		GLint swapInterval = p_enable ? 1 : 0;
 		CGLSetParameter(ctx, kCGLCPSwapInterval, &swapInterval);
-	}*/
-
-	///TODO Maybe pause/unpause display link?
-	waiting_for_vsync = p_enable;
+	}
 }
 
 OS_OSX *OS_OSX::singleton = NULL;

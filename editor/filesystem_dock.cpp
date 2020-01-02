@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -36,8 +36,12 @@
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
 #include "core/project_settings.h"
+#include "editor_feature_profile.h"
 #include "editor_node.h"
+#include "editor_resource_preview.h"
+#include "editor_scale.h"
 #include "editor_settings.h"
+#include "import_dock.h"
 #include "scene/main/viewport.h"
 #include "scene/resources/packed_scene.h"
 
@@ -52,7 +56,7 @@ Ref<Texture> FileSystemDock::_get_tree_item_icon(EditorFileSystemDirectory *p_di
 	return file_icon;
 }
 
-bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory *p_dir, Vector<String> &uncollapsed_paths, bool p_select_in_favorites) {
+bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory *p_dir, Vector<String> &uncollapsed_paths, bool p_select_in_favorites, bool p_unfold_path) {
 	bool parent_should_expand = false;
 
 	// Create a tree item for the subdirectory.
@@ -71,14 +75,18 @@ bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory 
 		subdirectory_item->select(0);
 	}
 
-	subdirectory_item->set_collapsed(uncollapsed_paths.find(lpath) < 0);
+	if (p_unfold_path && path.begins_with(lpath) && path != lpath) {
+		subdirectory_item->set_collapsed(false);
+	} else {
+		subdirectory_item->set_collapsed(uncollapsed_paths.find(lpath) < 0);
+	}
 	if (searched_string.length() > 0 && dname.to_lower().find(searched_string) >= 0) {
 		parent_should_expand = true;
 	}
 
 	// Create items for all subdirectories.
 	for (int i = 0; i < p_dir->get_subdir_count(); i++)
-		parent_should_expand = (_create_tree(subdirectory_item, p_dir->get_subdir(i), uncollapsed_paths, p_select_in_favorites) || parent_should_expand);
+		parent_should_expand = (_create_tree(subdirectory_item, p_dir->get_subdir(i), uncollapsed_paths, p_select_in_favorites, p_unfold_path) || parent_should_expand);
 
 	// Create all items for the files in the subdirectory.
 	if (display_mode == DISPLAY_MODE_TREE_ONLY) {
@@ -119,6 +127,11 @@ bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory 
 			udata.push_back(tree_update_id);
 			udata.push_back(file_item);
 			EditorResourcePreview::get_singleton()->queue_resource_preview(file_metadata, this, "_tree_thumbnail_done", udata);
+		}
+	} else if (display_mode == DISPLAY_MODE_SPLIT) {
+		if (lpath.get_base_dir() == path.get_base_dir()) {
+			subdirectory_item->select(0);
+			subdirectory_item->set_as_cursor(0);
 		}
 	}
 
@@ -164,7 +177,7 @@ Vector<String> FileSystemDock::_compute_uncollapsed_paths() {
 	return uncollapsed_paths;
 }
 
-void FileSystemDock::_update_tree(const Vector<String> &p_uncollapsed_paths, bool p_uncollapse_root, bool p_select_in_favorites) {
+void FileSystemDock::_update_tree(const Vector<String> &p_uncollapsed_paths, bool p_uncollapse_root, bool p_select_in_favorites, bool p_unfold_path) {
 	// Recreate the tree.
 	tree->clear();
 	tree_update_id++;
@@ -237,7 +250,7 @@ void FileSystemDock::_update_tree(const Vector<String> &p_uncollapsed_paths, boo
 	}
 
 	// Create the remaining of the tree.
-	_create_tree(root, EditorFileSystem::get_singleton()->get_filesystem(), uncollapsed_paths, p_select_in_favorites);
+	_create_tree(root, EditorFileSystem::get_singleton()->get_filesystem(), uncollapsed_paths, p_select_in_favorites, p_unfold_path);
 	tree->ensure_cursor_is_visible();
 	updating_tree = false;
 }
@@ -459,7 +472,7 @@ void FileSystemDock::_navigate_to_path(const String &p_path, bool p_select_in_fa
 	_set_current_path_text(path);
 	_push_to_history();
 
-	_update_tree(_compute_uncollapsed_paths(), false, p_select_in_favorites);
+	_update_tree(_compute_uncollapsed_paths(), false, p_select_in_favorites, true);
 	if (display_mode == DISPLAY_MODE_SPLIT) {
 		_update_file_list(false);
 		files->get_v_scroll()->set_value(0);
@@ -1742,8 +1755,8 @@ void FileSystemDock::_file_option(int p_option, const Vector<String> &p_selected
 			if (!fpath.ends_with("/")) {
 				fpath = fpath.get_base_dir();
 			}
-			make_script_dialog_text->config("Node", fpath.plus_file("new_script.gd"), false);
-			make_script_dialog_text->popup_centered(Size2(300, 300) * EDSCALE);
+			make_script_dialog->config("Node", fpath.plus_file("new_script.gd"), false);
+			make_script_dialog->popup_centered(Size2(300, 300) * EDSCALE);
 		} break;
 
 		case FILE_COPY_PATH: {
@@ -1780,7 +1793,7 @@ void FileSystemDock::_resource_created() const {
 }
 
 void FileSystemDock::_search_changed(const String &p_text, const Control *p_from) {
-	if (searched_string.length() == 0 && p_text.length() > 0) {
+	if (searched_string.length() == 0) {
 		// Register the uncollapsed paths before they change.
 		uncollapsed_paths_before_search = _compute_uncollapsed_paths();
 	}
@@ -1792,13 +1805,14 @@ void FileSystemDock::_search_changed(const String &p_text, const Control *p_from
 	else // File_list_search_box.
 		tree_search_box->set_text(searched_string);
 
+	bool unfold_path = (p_text == String() && path != String());
 	switch (display_mode) {
 		case DISPLAY_MODE_TREE_ONLY: {
-			_update_tree(searched_string.length() == 0 ? uncollapsed_paths_before_search : Vector<String>());
+			_update_tree(searched_string.length() == 0 ? uncollapsed_paths_before_search : Vector<String>(), false, false, unfold_path);
 		} break;
 		case DISPLAY_MODE_SPLIT: {
 			_update_file_list(false);
-			_update_tree(searched_string.length() == 0 ? uncollapsed_paths_before_search : Vector<String>());
+			_update_tree(searched_string.length() == 0 ? uncollapsed_paths_before_search : Vector<String>(), false, false, unfold_path);
 		} break;
 	}
 }
@@ -2677,9 +2691,9 @@ FileSystemDock::FileSystemDock(EditorNode *p_editor) {
 	make_scene_dialog->register_text_enter(make_scene_dialog_text);
 	make_scene_dialog->connect("confirmed", this, "_make_scene_confirm");
 
-	make_script_dialog_text = memnew(ScriptCreateDialog);
-	make_script_dialog_text->set_title(TTR("Create Script"));
-	add_child(make_script_dialog_text);
+	make_script_dialog = memnew(ScriptCreateDialog);
+	make_script_dialog->set_title(TTR("Create Script"));
+	add_child(make_script_dialog);
 
 	new_resource_dialog = memnew(CreateDialog);
 	add_child(new_resource_dialog);

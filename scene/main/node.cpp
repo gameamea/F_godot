@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -835,19 +835,26 @@ bool Node::is_processing_internal() const {
 void Node::set_process_priority(int p_priority) {
 	data.process_priority = p_priority;
 
-	ERR_FAIL_COND(!data.tree);
+	// Make sure we are in SceneTree.
+	if (data.tree == NULL) {
+		return;
+	}
 
-	if (is_processing())
+	if (is_processing()) {
 		data.tree->make_group_changed("idle_process");
+	}
 
-	if (is_processing_internal())
+	if (is_processing_internal()) {
 		data.tree->make_group_changed("idle_process_internal");
+	}
 
-	if (is_physics_processing())
+	if (is_physics_processing()) {
 		data.tree->make_group_changed("physics_process");
+	}
 
-	if (is_physics_processing_internal())
+	if (is_physics_processing_internal()) {
 		data.tree->make_group_changed("physics_process_internal");
+	}
 }
 
 int Node::get_process_priority() const {

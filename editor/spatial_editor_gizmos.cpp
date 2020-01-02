@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -202,6 +202,9 @@ void EditorSpatialGizmo::add_mesh(const Ref<ArrayMesh> &p_mesh, bool p_billboard
 }
 
 void EditorSpatialGizmo::add_lines(const Vector<Vector3> &p_lines, const Ref<Material> &p_material, bool p_billboard) {
+	if (p_lines.empty()) {
+		return;
+	}
 
 	ERR_FAIL_COND(!spatial_node);
 	Instance ins;
@@ -1272,7 +1275,7 @@ void CameraSpatialGizmoPlugin::set_handle(EditorSpatialGizmo *p_gizmo, int p_idx
 	if (camera->get_projection() == Camera::PROJECTION_PERSPECTIVE) {
 		Transform gt2 = camera->get_global_transform();
 		float a = _find_closest_angle_to_half_pi_arc(s[0], s[1], 1.0, gt2);
-		camera->set("fov", a * 2.0);
+		camera->set("fov", CLAMP(a * 2.0, 1, 179));
 	} else {
 
 		Vector3 ra, rb;
@@ -1282,8 +1285,7 @@ void CameraSpatialGizmoPlugin::set_handle(EditorSpatialGizmo *p_gizmo, int p_idx
 			d = Math::stepify(d, SpatialEditor::get_singleton()->get_translate_snap());
 		}
 
-		if (d < 0)
-			d = 0;
+		d = CLAMP(d, 0.1, 16384);
 
 		camera->set("size", d);
 	}
@@ -4190,8 +4192,19 @@ void JointSpatialGizmoPlugin::redraw(EditorSpatialGizmo *p_gizmo) {
 
 	p_gizmo->clear();
 
-	const Spatial *node_body_a = Object::cast_to<Spatial>(joint->get_node(joint->get_node_a()));
-	const Spatial *node_body_b = Object::cast_to<Spatial>(joint->get_node(joint->get_node_b()));
+	Spatial *node_body_a = NULL;
+	if (!joint->get_node_a().is_empty()) {
+		node_body_a = Object::cast_to<Spatial>(joint->get_node(joint->get_node_a()));
+	}
+
+	Spatial *node_body_b = NULL;
+	if (!joint->get_node_b().is_empty()) {
+		node_body_b = Object::cast_to<Spatial>(joint->get_node(joint->get_node_b()));
+	}
+
+	if (!node_body_a && !node_body_b) {
+		return;
+	}
 
 	Ref<Material> common_material = get_material("joint_material", p_gizmo);
 	Ref<Material> body_a_material = get_material("joint_body_a_material", p_gizmo);

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -739,8 +739,8 @@ void Basis::get_axis_angle(Vector3 &r_axis, real_t &r_angle) const {
 		if ((xx > yy) && (xx > zz)) { // elements[0][0] is the largest diagonal term
 			if (xx < epsilon) {
 				x = 0;
-				y = 0.7071;
-				z = 0.7071;
+				y = Math_SQRT12;
+				z = Math_SQRT12;
 			} else {
 				x = Math::sqrt(xx);
 				y = xy / x;
@@ -748,9 +748,9 @@ void Basis::get_axis_angle(Vector3 &r_axis, real_t &r_angle) const {
 			}
 		} else if (yy > zz) { // elements[1][1] is the largest diagonal term
 			if (yy < epsilon) {
-				x = 0.7071;
+				x = Math_SQRT12;
 				y = 0;
-				z = 0.7071;
+				z = Math_SQRT12;
 			} else {
 				y = Math::sqrt(yy);
 				x = xy / y;
@@ -758,8 +758,8 @@ void Basis::get_axis_angle(Vector3 &r_axis, real_t &r_angle) const {
 			}
 		} else { // elements[2][2] is the largest diagonal term so base result on this
 			if (zz < epsilon) {
-				x = 0.7071;
-				y = 0.7071;
+				x = Math_SQRT12;
+				y = Math_SQRT12;
 				z = 0;
 			} else {
 				z = Math::sqrt(zz);

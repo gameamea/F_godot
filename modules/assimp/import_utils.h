@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -309,9 +309,7 @@ public:
 			if (r_found) {
 				return;
 			}
-			if (r_found == false) {
-				find_texture_path(r_p_path, dir, r_path, r_found, "." + exts[i]);
-			}
+			find_texture_path(r_p_path, dir, r_path, r_found, "." + exts[i]);
 		}
 	}
 
@@ -322,9 +320,7 @@ public:
 	static void set_texture_mapping_mode(aiTextureMapMode *map_mode, Ref<ImageTexture> texture) {
 		ERR_FAIL_COND(texture.is_null());
 		ERR_FAIL_COND(map_mode == NULL);
-		aiTextureMapMode tex_mode = aiTextureMapMode::aiTextureMapMode_Wrap;
-
-		tex_mode = map_mode[0];
+		aiTextureMapMode tex_mode = map_mode[0];
 
 		int32_t flags = Texture::FLAGS_DEFAULT;
 		if (tex_mode == aiTextureMapMode_Wrap) {
@@ -394,7 +390,9 @@ public:
 			return Ref<Image>();
 		} else {
 			Ref<Texture> texture = ResourceLoader::load(p_path);
+			ERR_FAIL_COND_V(texture.is_null(), Ref<Image>());
 			Ref<Image> image = texture->get_data();
+			ERR_FAIL_COND_V(image.is_null(), Ref<Image>());
 			state.path_to_image_cache.insert(p_path, image);
 			return image;
 		}

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -279,9 +279,10 @@ Ref<StreamPeer> PacketPeerStream::get_stream_peer() const {
 
 void PacketPeerStream::set_input_buffer_max_size(int p_max_size) {
 
+	ERR_FAIL_COND_MSG(p_max_size < 0, "Max size of input buffer size cannot be smaller than 0.");
 	//warning may lose packets
 	ERR_FAIL_COND_MSG(ring_buffer.data_left(), "Buffer in use, resizing would cause loss of data.");
-	ring_buffer.resize(nearest_shift(p_max_size + 4));
+	ring_buffer.resize(nearest_shift(next_power_of_2(p_max_size + 4)) - 1);
 	input_buffer.resize(next_power_of_2(p_max_size + 4));
 }
 

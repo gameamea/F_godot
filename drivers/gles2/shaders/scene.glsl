@@ -251,12 +251,10 @@ void light_compute(
 		//normalized blinn always unless disabled
 		vec3 H = normalize(V + L);
 		float cNdotH = max(dot(N, H), 0.0);
-		float cVdotH = max(dot(V, H), 0.0);
-		float cLdotH = max(dot(L, H), 0.0);
 		float shininess = exp2(15.0 * (1.0 - roughness) + 1.0) * 0.25;
-		float blinn = pow(cNdotH, shininess);
+		float blinn = pow(cNdotH, shininess) * cNdotL;
 		blinn *= (shininess + 8.0) * (1.0 / (8.0 * M_PI));
-		specular_brdf_NL = (blinn) / max(4.0 * cNdotV * cNdotL, 0.75);
+		specular_brdf_NL = blinn;
 #endif
 
 		SRGB_APPROX(specular_brdf_NL)
@@ -425,6 +423,8 @@ void main() {
 #define projection_matrix local_projection_matrix
 #define world_transform world_matrix
 
+	float point_size = 1.0;
+
 	{
 		/* clang-format off */
 
@@ -433,6 +433,7 @@ VERTEX_SHADER_CODE
 		/* clang-format on */
 	}
 
+	gl_PointSize = point_size;
 	vec4 outvec = vertex;
 
 	// use local coordinates
@@ -1270,9 +1271,9 @@ LIGHT_SHADER_CODE
 
 		//normalized blinn
 		float shininess = exp2(15.0 * (1.0 - roughness) + 1.0) * 0.25;
-		float blinn = pow(cNdotH, shininess);
+		float blinn = pow(cNdotH, shininess) * cNdotL;
 		blinn *= (shininess + 8.0) * (1.0 / (8.0 * M_PI));
-		specular_brdf_NL = (blinn) / max(4.0 * cNdotV * cNdotL, 0.75);
+		specular_brdf_NL = blinn;
 
 #elif defined(SPECULAR_PHONG)
 
@@ -1638,7 +1639,6 @@ FRAGMENT_SHADER_CODE
 #endif // defined(USE_REFLECTION_PROBE1) || defined(USE_REFLECTION_PROBE2)
 
 	// environment BRDF approximation
-
 	{
 
 #if defined(DIFFUSE_TOON)
@@ -2052,17 +2052,6 @@ FRAGMENT_SHADER_CODE
 
 	specular_light += specular_interp * specular_blob_intensity * light_att;
 	diffuse_light += diffuse_interp * albedo * light_att;
-
-	// Same as above, needed for VERTEX_LIGHTING or else lights are too bright
-	const vec4 c0 = vec4(-1.0, -0.0275, -0.572, 0.022);
-	const vec4 c1 = vec4(1.0, 0.0425, 1.04, -0.04);
-	vec4 r = roughness * c0 + c1;
-	float ndotv = clamp(dot(normal, eye_position), 0.0, 1.0);
-	float a004 = min(r.x * r.x, exp2(-9.28 * ndotv)) * r.x + r.y;
-	vec2 env = vec2(-1.04, 1.04) * a004 + r.zw;
-
-	vec3 f0 = F0(metallic, specular, albedo);
-	specular_light *= env.x * f0 + env.y;
 
 #else
 	//fragment lighting

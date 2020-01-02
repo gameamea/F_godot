@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -163,8 +163,6 @@ Error OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p
 	AudioDriverManager::initialize(p_audio_driver);
 
 	input = memnew(InputDefault);
-
-	camera_server = memnew(CameraIOS);
 
 #ifdef GAME_CENTER_ENABLED
 	game_center = memnew(GameCenter);
@@ -360,11 +358,6 @@ void OSIPhone::finalize() {
 
 	if (main_loop) // should not happen?
 		memdelete(main_loop);
-
-	if (camera_server) {
-		memdelete(camera_server);
-		camera_server = NULL;
-	}
 
 	visual_server->finish();
 	memdelete(visual_server);

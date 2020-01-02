@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1480,6 +1480,7 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 	video_driver_index = p_video_driver;
 
 	gl_context->set_use_vsync(video_mode.use_vsync);
+	set_vsync_via_compositor(video_mode.vsync_via_compositor);
 #endif
 
 	visual_server = memnew(VisualServerRaster);
@@ -1493,8 +1494,6 @@ Error OS_Windows::initialize(const VideoMode &p_desired, int p_video_driver, int
 	joypad = memnew(JoypadWindows(input, &hWnd));
 
 	power_manager = memnew(PowerWindows);
-
-	camera_server = memnew(CameraWindows);
 
 	AudioDriverManager::initialize(p_audio_driver);
 
@@ -1649,7 +1648,6 @@ void OS_Windows::finalize() {
 
 	memdelete(joypad);
 	memdelete(input);
-	memdelete(camera_server);
 	touch_state.clear();
 
 	cursors_cache.clear();

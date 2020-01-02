@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -37,7 +37,10 @@
 #include "core/os/os.h"
 #include "core/project_settings.h"
 #include "editor/editor_node.h"
+#include "editor/editor_run_script.h"
+#include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
+#include "editor/filesystem_dock.h"
 #include "editor/find_in_files.h"
 #include "editor/node_dock.h"
 #include "editor/plugins/shader_editor_plugin.h"
@@ -987,8 +990,18 @@ Array ScriptEditor::_get_open_scripts() const {
 	return ret;
 }
 
+bool ScriptEditor::toggle_scripts_panel() {
+	list_split->set_visible(!list_split->is_visible());
+	return list_split->is_visible();
+}
+
+bool ScriptEditor::is_scripts_panel_toggled() {
+	return list_split->is_visible();
+}
+
 void ScriptEditor::_menu_option(int p_option) {
 
+	ScriptEditorBase *current = _get_current_editor();
 	switch (p_option) {
 		case FILE_NEW: {
 			script_create_dialog->config("Node", "new_script");
@@ -1127,11 +1140,18 @@ void ScriptEditor::_menu_option(int p_option) {
 			debug_menu->get_popup()->set_item_checked(debug_menu->get_popup()->get_item_index(DEBUG_WITH_EXTERNAL_EDITOR), debug_with_external_editor);
 		} break;
 		case TOGGLE_SCRIPTS_PANEL: {
-			list_split->set_visible(!list_split->is_visible());
+			if (current) {
+				ScriptTextEditor *editor = Object::cast_to<ScriptTextEditor>(current);
+				toggle_scripts_panel();
+				if (editor) {
+					editor->update_toggle_scripts_button();
+				}
+			} else {
+				toggle_scripts_panel();
+			}
 		}
 	}
 
-	ScriptEditorBase *current = _get_current_editor();
 	if (current) {
 
 		switch (p_option) {
@@ -1208,7 +1228,7 @@ void ScriptEditor::_menu_option(int p_option) {
 
 				Ref<Script> scr = current->get_edited_resource();
 				if (scr == NULL || scr.is_null()) {
-					EditorNode::get_singleton()->show_warning("Can't obtain the script for running.");
+					EditorNode::get_singleton()->show_warning(TTR("Can't obtain the script for running."));
 					break;
 				}
 
@@ -1216,18 +1236,18 @@ void ScriptEditor::_menu_option(int p_option) {
 				Error err = scr->reload(false); //hard reload script before running always
 
 				if (err != OK) {
-					EditorNode::get_singleton()->show_warning("Script failed reloading, check console for errors.");
+					EditorNode::get_singleton()->show_warning(TTR("Script failed reloading, check console for errors."));
 					return;
 				}
 				if (!scr->is_tool()) {
 
-					EditorNode::get_singleton()->show_warning("Script is not in tool mode, will not be able to run.");
+					EditorNode::get_singleton()->show_warning(TTR("Script is not in tool mode, will not be able to run."));
 					return;
 				}
 
 				if (!ClassDB::is_parent_class(scr->get_instance_base_type(), "EditorScript")) {
 
-					EditorNode::get_singleton()->show_warning("To run this script, it must inherit EditorScript and be set to tool mode.");
+					EditorNode::get_singleton()->show_warning(TTR("To run this script, it must inherit EditorScript and be set to tool mode."));
 					return;
 				}
 
@@ -1250,12 +1270,15 @@ void ScriptEditor::_menu_option(int p_option) {
 				_copy_script_path();
 			} break;
 			case SHOW_IN_FILE_SYSTEM: {
-				RES script = current->get_edited_resource();
-				FileSystemDock *file_system_dock = EditorNode::get_singleton()->get_filesystem_dock();
-				file_system_dock->navigate_to_path(script->get_path());
-				// Ensure that the FileSystem dock is visible.
-				TabContainer *tab_container = (TabContainer *)file_system_dock->get_parent_control();
-				tab_container->set_current_tab(file_system_dock->get_position_in_parent());
+				const RES script = current->get_edited_resource();
+				const String path = script->get_path();
+				if (!path.empty()) {
+					FileSystemDock *file_system_dock = EditorNode::get_singleton()->get_filesystem_dock();
+					file_system_dock->navigate_to_path(path);
+					// Ensure that the FileSystem dock is visible.
+					TabContainer *tab_container = (TabContainer *)file_system_dock->get_parent_control();
+					tab_container->set_current_tab(file_system_dock->get_position_in_parent());
+				}
 			} break;
 			case CLOSE_DOCS: {
 				_close_docs_tab();
@@ -2497,7 +2520,10 @@ void ScriptEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data, Co
 		ScriptEditorBase *se = Object::cast_to<ScriptEditorBase>(node);
 		EditorHelp *eh = Object::cast_to<EditorHelp>(node);
 		if (se || eh) {
-			int new_index = script_list->get_item_metadata(script_list->get_item_at_position(p_point));
+			int new_index = 0;
+			if (script_list->get_item_count() > 0) {
+				new_index = script_list->get_item_metadata(script_list->get_item_at_position(p_point));
+			}
 			tab_container->move_child(node, new_index);
 			tab_container->set_current_tab(new_index);
 			_update_script_names();
@@ -2514,7 +2540,10 @@ void ScriptEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data, Co
 		ScriptEditorBase *se = Object::cast_to<ScriptEditorBase>(node);
 		EditorHelp *eh = Object::cast_to<EditorHelp>(node);
 		if (se || eh) {
-			int new_index = script_list->get_item_metadata(script_list->get_item_at_position(p_point));
+			int new_index = 0;
+			if (script_list->get_item_count() > 0) {
+				new_index = script_list->get_item_metadata(script_list->get_item_at_position(p_point));
+			}
 			tab_container->move_child(node, new_index);
 			tab_container->set_current_tab(new_index);
 			_update_script_names();
@@ -2525,7 +2554,10 @@ void ScriptEditor::drop_data_fw(const Point2 &p_point, const Variant &p_data, Co
 
 		Vector<String> files = d["files"];
 
-		int new_index = script_list->get_item_metadata(script_list->get_item_at_position(p_point));
+		int new_index = 0;
+		if (script_list->get_item_count() > 0) {
+			new_index = script_list->get_item_metadata(script_list->get_item_at_position(p_point));
+		}
 		int num_tabs_before = tab_container->get_child_count();
 		for (int i = 0; i < files.size(); i++) {
 			String file = files[i];
@@ -2551,16 +2583,20 @@ void ScriptEditor::_unhandled_input(const Ref<InputEvent> &p_event) {
 	if (!is_visible_in_tree() || !p_event->is_pressed() || p_event->is_echo())
 		return;
 	if (ED_IS_SHORTCUT("script_editor/next_script", p_event)) {
-		int next_tab = script_list->get_current() + 1;
-		next_tab %= script_list->get_item_count();
-		_go_to_tab(script_list->get_item_metadata(next_tab));
-		_update_script_names();
+		if (script_list->get_item_count() > 1) {
+			int next_tab = script_list->get_current() + 1;
+			next_tab %= script_list->get_item_count();
+			_go_to_tab(script_list->get_item_metadata(next_tab));
+			_update_script_names();
+		}
 	}
 	if (ED_IS_SHORTCUT("script_editor/prev_script", p_event)) {
-		int next_tab = script_list->get_current() - 1;
-		next_tab = next_tab >= 0 ? next_tab : script_list->get_item_count() - 1;
-		_go_to_tab(script_list->get_item_metadata(next_tab));
-		_update_script_names();
+		if (script_list->get_item_count() > 1) {
+			int next_tab = script_list->get_current() - 1;
+			next_tab = next_tab >= 0 ? next_tab : script_list->get_item_count() - 1;
+			_go_to_tab(script_list->get_item_metadata(next_tab));
+			_update_script_names();
+		}
 	}
 	if (ED_IS_SHORTCUT("script_editor/window_move_up", p_event)) {
 		_menu_option(WINDOW_MOVE_UP);
@@ -3238,7 +3274,7 @@ ScriptEditor::ScriptEditor(EditorNode *p_editor) {
 	ED_SHORTCUT("script_editor/window_move_up", TTR("Move Up"), KEY_MASK_SHIFT | KEY_MASK_ALT | KEY_UP);
 	ED_SHORTCUT("script_editor/window_move_down", TTR("Move Down"), KEY_MASK_SHIFT | KEY_MASK_ALT | KEY_DOWN);
 	ED_SHORTCUT("script_editor/next_script", TTR("Next script"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_PERIOD); // these should be KEY_GREATER and KEY_LESS but those don't work
-	ED_SHORTCUT("script_editor/prev_script", TTR("Previous script"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_COLON);
+	ED_SHORTCUT("script_editor/prev_script", TTR("Previous script"), KEY_MASK_CMD | KEY_MASK_SHIFT | KEY_COMMA);
 	set_process_unhandled_input(true);
 
 	file_menu = memnew(MenuButton);

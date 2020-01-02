@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -349,16 +349,15 @@ private:
 
 	void _path_selected(const String &p_path) {
 
-		String p = p_path;
-		String sp = p.simplify_path();
+		String sp = p_path.simplify_path();
 		project_path->set_text(sp);
 		_path_text_changed(sp);
 		get_ok()->call_deferred("grab_focus");
 	}
 
 	void _install_path_selected(const String &p_path) {
-		String p = p_path;
-		String sp = p.simplify_path();
+
+		String sp = p_path.simplify_path();
 		install_path->set_text(sp);
 		_path_text_changed(sp);
 		get_ok()->call_deferred("grab_focus");
@@ -372,8 +371,8 @@ private:
 
 			fdialog->set_mode(FileDialog::MODE_OPEN_FILE);
 			fdialog->clear_filters();
-			fdialog->add_filter("project.godot ; " VERSION_NAME " Project");
-			fdialog->add_filter("*.zip ; Zip File");
+			fdialog->add_filter(vformat("project.godot ; %s %s", VERSION_NAME, TTR("Project")));
+			fdialog->add_filter("*.zip ; " + TTR("ZIP File"));
 		} else {
 			fdialog->set_mode(FileDialog::MODE_OPEN_DIR);
 		}
@@ -1410,9 +1409,7 @@ void ProjectList::sort_projects() {
 
 	for (int i = 0; i < _projects.size(); ++i) {
 		Item &item = _projects.write[i];
-		if (item.control->is_visible()) {
-			item.control->get_parent()->move_child(item.control, i);
-		}
+		item.control->get_parent()->move_child(item.control, i);
 	}
 
 	// Rewind the coroutine because order of projects changed
@@ -2439,7 +2436,7 @@ ProjectManager::ProjectManager() {
 
 	String cp;
 	cp += 0xA9;
-	OS::get_singleton()->set_window_title(VERSION_NAME + String(" - ") + TTR("Project Manager") + " - " + cp + " 2007-2019 Juan Linietsky, Ariel Manzur & Godot Contributors");
+	OS::get_singleton()->set_window_title(VERSION_NAME + String(" - ") + TTR("Project Manager") + " - " + cp + " 2007-2020 Juan Linietsky, Ariel Manzur & Godot Contributors");
 
 	Control *center_box = memnew(Control);
 	center_box->set_v_size_flags(SIZE_EXPAND_FILL);
@@ -2466,9 +2463,9 @@ ProjectManager::ProjectManager() {
 	sort_label->set_text(TTR("Sort:"));
 	sort_filters->add_child(sort_label);
 	Vector<String> sort_filter_titles;
-	sort_filter_titles.push_back("Name");
-	sort_filter_titles.push_back("Path");
-	sort_filter_titles.push_back("Last Modified");
+	sort_filter_titles.push_back(TTR("Name"));
+	sort_filter_titles.push_back(TTR("Path"));
+	sort_filter_titles.push_back(TTR("Last Modified"));
 	project_order_filter = memnew(ProjectListFilter);
 	project_order_filter->add_filter_option();
 	project_order_filter->_setup_filters(sort_filter_titles);
@@ -2696,7 +2693,7 @@ void ProjectListFilter::_setup_filters(Vector<String> options) {
 
 	filter_option->clear();
 	for (int i = 0; i < options.size(); i++)
-		filter_option->add_item(TTR(options[i]));
+		filter_option->add_item(options[i]);
 }
 
 void ProjectListFilter::_search_text_changed(const String &p_newtext) {

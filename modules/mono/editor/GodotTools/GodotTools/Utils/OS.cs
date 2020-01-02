@@ -14,6 +14,9 @@ namespace GodotTools.Utils
         [MethodImpl(MethodImplOptions.InternalCall)]
         static extern string GetPlatformName();
 
+        [MethodImpl(MethodImplOptions.InternalCall)]
+        static extern bool UnixFileHasExecutableAccess(string filePath);
+
         public static class Names
         {
             public const string Windows = "Windows";
@@ -55,24 +58,26 @@ namespace GodotTools.Utils
             return name.Equals(GetPlatformName(), StringComparison.OrdinalIgnoreCase);
         }
 
-        public static bool IsWindows => IsOS(Names.Windows);
+        private static readonly Lazy<bool> _isWindows = new Lazy<bool>(() => IsOS(Names.Windows));
+        private static readonly Lazy<bool> _isOSX = new Lazy<bool>(() => IsOS(Names.OSX));
+        private static readonly Lazy<bool> _isX11 = new Lazy<bool>(() => IsOS(Names.X11));
+        private static readonly Lazy<bool> _isServer = new Lazy<bool>(() => IsOS(Names.Server));
+        private static readonly Lazy<bool> _isUWP = new Lazy<bool>(() => IsOS(Names.UWP));
+        private static readonly Lazy<bool> _isHaiku = new Lazy<bool>(() => IsOS(Names.Haiku));
+        private static readonly Lazy<bool> _isAndroid = new Lazy<bool>(() => IsOS(Names.Android));
+        private static readonly Lazy<bool> _isHTML5 = new Lazy<bool>(() => IsOS(Names.HTML5));
 
-        public static bool IsOSX => IsOS(Names.OSX);
-
-        public static bool IsX11 => IsOS(Names.X11);
-
-        public static bool IsServer => IsOS(Names.Server);
-
-        public static bool IsUWP => IsOS(Names.UWP);
-
-        public static bool IsHaiku => IsOS(Names.Haiku);
-
-        public static bool IsAndroid => IsOS(Names.Android);
-
-        public static bool IsHTML5 => IsOS(Names.HTML5);
+        public static bool IsWindows => _isWindows.Value || IsUWP;
+        public static bool IsOSX => _isOSX.Value;
+        public static bool IsX11 => _isX11.Value;
+        public static bool IsServer => _isServer.Value;
+        public static bool IsUWP => _isUWP.Value;
+        public static bool IsHaiku => _isHaiku.Value;
+        public static bool IsAndroid => _isAndroid.Value;
+        public static bool IsHTML5 => _isHTML5.Value;
 
         private static bool? _isUnixCache;
-        private static readonly string[] UnixLikePlatforms = {Names.OSX, Names.X11, Names.Server, Names.Haiku, Names.Android};
+        private static readonly string[] UnixLikePlatforms = { Names.OSX, Names.X11, Names.Server, Names.Haiku, Names.Android };
 
         public static bool IsUnixLike()
         {
@@ -88,7 +93,36 @@ namespace GodotTools.Utils
 
         public static string PathWhich(string name)
         {
-            string[] windowsExts = IsWindows ? Environment.GetEnvironmentVariable("PATHEXT")?.Split(PathSep) : null;
+            return IsWindows ? PathWhichWindows(name) : PathWhichUnix(name);
+        }
+
+        private static string PathWhichWindows(string name)
+        {
+            string[] windowsExts = Environment.GetEnvironmentVariable("PATHEXT")?.Split(PathSep) ?? new string[] { };
+            string[] pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(PathSep);
+
+            var searchDirs = new List<string>();
+
+            if (pathDirs != null)
+                searchDirs.AddRange(pathDirs);
+
+            string nameExt = Path.GetExtension(name);
+            bool hasPathExt = !string.IsNullOrEmpty(nameExt) && windowsExts.Contains(nameExt, StringComparer.OrdinalIgnoreCase);
+
+            searchDirs.Add(System.IO.Directory.GetCurrentDirectory()); // last in the list
+
+            if (hasPathExt)
+                return searchDirs.Select(dir => Path.Combine(dir, name)).FirstOrDefault(File.Exists);
+
+            return (from dir in searchDirs
+                    select Path.Combine(dir, name)
+                into path
+                    from ext in windowsExts
+                    select path + ext).FirstOrDefault(File.Exists);
+        }
+
+        private static string PathWhichUnix(string name)
+        {
             string[] pathDirs = Environment.GetEnvironmentVariable("PATH")?.Split(PathSep);
 
             var searchDirs = new List<string>();
@@ -98,28 +132,8 @@ namespace GodotTools.Utils
 
             searchDirs.Add(System.IO.Directory.GetCurrentDirectory()); // last in the list
 
-            foreach (var dir in searchDirs)
-            {
-                string path = Path.Combine(dir, name);
-
-                if (IsWindows && windowsExts != null)
-                {
-                    foreach (var extension in windowsExts)
-                    {
-                        string pathWithExtension = path + extension;
-
-                        if (File.Exists(pathWithExtension))
-                            return pathWithExtension;
-                    }
-                }
-                else
-                {
-                    if (File.Exists(path))
-                        return path;
-                }
-            }
-
-            return null;
+            return searchDirs.Select(dir => Path.Combine(dir, name))
+                .FirstOrDefault(path => File.Exists(path) && UnixFileHasExecutableAccess(path));
         }
 
         public static void RunProcess(string command, IEnumerable<string> arguments)
@@ -145,6 +159,8 @@ namespace GodotTools.Utils
 
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
+                if (IsWindows && process.Id > 0)
+                    User32Dll.AllowSetForegroundWindow(process.Id); // allows application to focus itself
             }
         }
     }

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -30,6 +30,7 @@
 
 #include "import_dock.h"
 #include "editor_node.h"
+#include "editor_resource_preview.h"
 
 class ImportDockParameters : public Object {
 	GDCLASS(ImportDockParameters, Object);
@@ -182,7 +183,7 @@ void ImportDock::set_edit_multiple_paths(const Vector<String> &p_paths) {
 
 	clear();
 
-	//use the value that is repeated the mot
+	// Use the value that is repeated the most.
 	Map<String, Dictionary> value_frequency;
 
 	for (int i = 0; i < p_paths.size(); i++) {

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -517,7 +517,7 @@ Error AppxPackager::add_file(String p_file_name, const uint8_t *p_buffer, size_t
 			int total_out_before = strm.total_out;
 
 			int err = deflate(&strm, Z_FULL_FLUSH);
-			ERR_FAIL_COND_V(err >= 0, ERR_BUG); // Negative means bug
+			ERR_FAIL_COND_V(err < 0, ERR_BUG); // Negative means bug
 
 			bh.compressed_size = strm.total_out - total_out_before;
 

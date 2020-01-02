@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -153,7 +153,8 @@ private:
 #ifdef TOOLS_ENABLED
 	uint64_t api_editor_hash;
 #endif
-	void _initialize_and_check_api_hashes();
+	void _init_godot_api_hashes();
+	void _init_exception_policy();
 
 	GDMonoLog *gdmono_log;
 
@@ -162,6 +163,7 @@ private:
 #endif
 
 	void add_mono_shared_libs_dir_to_path();
+	void determine_mono_dirs(String &r_assembly_rootdir, String &r_config_dir);
 
 protected:
 	static GDMono *singleton;

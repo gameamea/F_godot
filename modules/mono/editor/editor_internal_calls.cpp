@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -30,9 +30,14 @@
 
 #include "editor_internal_calls.h"
 
+#ifdef UNIX_ENABLED
+#include <unistd.h> // access
+#endif
+
 #include "core/os/os.h"
 #include "core/version.h"
 #include "editor/editor_node.h"
+#include "editor/editor_scale.h"
 #include "editor/plugins/script_editor_plugin.h"
 #include "editor/script_editor_debugger.h"
 #include "main/main.h"
@@ -219,15 +224,14 @@ int32_t godot_icall_ScriptClassParser_ParseFile(MonoString *p_filepath, MonoObje
 	return err;
 }
 
-uint32_t godot_icall_ExportPlugin_GetExportedAssemblyDependencies(MonoString *p_project_dll_name, MonoString *p_project_dll_src_path,
+uint32_t godot_icall_ExportPlugin_GetExportedAssemblyDependencies(MonoObject *p_initial_dependencies,
 		MonoString *p_build_config, MonoString *p_custom_bcl_dir, MonoObject *r_dependencies) {
-	String project_dll_name = GDMonoMarshal::mono_string_to_godot(p_project_dll_name);
-	String project_dll_src_path = GDMonoMarshal::mono_string_to_godot(p_project_dll_src_path);
+	Dictionary initial_dependencies = GDMonoMarshal::mono_object_to_variant(p_initial_dependencies);
 	String build_config = GDMonoMarshal::mono_string_to_godot(p_build_config);
 	String custom_bcl_dir = GDMonoMarshal::mono_string_to_godot(p_custom_bcl_dir);
 	Dictionary dependencies = GDMonoMarshal::mono_object_to_variant(r_dependencies);
 
-	return GodotSharpExport::get_exported_assembly_dependencies(project_dll_name, project_dll_src_path, build_config, custom_bcl_dir, dependencies);
+	return GodotSharpExport::get_exported_assembly_dependencies(initial_dependencies, build_config, custom_bcl_dir, dependencies);
 }
 
 MonoString *godot_icall_Internal_UpdateApiAssembliesFromPrebuilt(MonoString *p_config) {
@@ -371,6 +375,15 @@ MonoString *godot_icall_Utils_OS_GetPlatformName() {
 	return GDMonoMarshal::mono_string_from_godot(os_name);
 }
 
+MonoBoolean godot_icall_Utils_OS_UnixFileHasExecutableAccess(MonoString *p_file_path) {
+#ifdef UNIX_ENABLED
+	String file_path = GDMonoMarshal::mono_string_to_godot(p_file_path);
+	return access(file_path.utf8().get_data(), X_OK) == 0;
+#else
+	ERR_FAIL_V(false);
+#endif
+}
+
 void register_editor_internal_calls() {
 
 	// GodotSharpDirs
@@ -443,4 +456,5 @@ void register_editor_internal_calls() {
 
 	// Utils.OS
 	mono_add_internal_call("GodotTools.Utils.OS::GetPlatformName", (void *)godot_icall_Utils_OS_GetPlatformName);
+	mono_add_internal_call("GodotTools.Utils.OS::UnixFileHasExecutableAccess", (void *)godot_icall_Utils_OS_UnixFileHasExecutableAccess);
 }

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -102,9 +102,9 @@ const lsp::DocumentSymbol *GDScriptWorkspace::get_script_symbol(const String &p_
 }
 
 void GDScriptWorkspace::reload_all_workspace_scripts() {
-	List<String> pathes;
-	list_script_files("res://", pathes);
-	for (List<String>::Element *E = pathes.front(); E; E = E->next()) {
+	List<String> paths;
+	list_script_files("res://", paths);
+	for (List<String>::Element *E = paths.front(); E; E = E->next()) {
 		const String &path = E->get();
 		Error err;
 		String content = FileAccess::get_file_as_string(path, &err);
