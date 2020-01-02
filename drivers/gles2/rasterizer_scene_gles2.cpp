@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1869,7 +1869,6 @@ void RasterizerSceneGLES2::_setup_light_type(LightInstance *p_light, ShadowAtlas
 	state.scene_shader.set_conditional(SceneShaderGLES2::LIGHT_USE_PSSM2, false);
 	state.scene_shader.set_conditional(SceneShaderGLES2::LIGHT_USE_PSSM4, false);
 	state.scene_shader.set_conditional(SceneShaderGLES2::LIGHT_USE_PSSM_BLEND, false);
-	state.scene_shader.set_conditional(SceneShaderGLES2::USE_SHADOW, false);
 
 	if (!p_light) { //no light, return off
 		return;
@@ -1955,8 +1954,7 @@ void RasterizerSceneGLES2::_setup_light(LightInstance *light, ShadowAtlas *shado
 	Color color = light_ptr->color * sign * energy * Math_PI;
 	state.scene_shader.set_uniform(SceneShaderGLES2::LIGHT_COLOR, color);
 
-	Color shadow_color = light_ptr->shadow_color.to_linear();
-	state.scene_shader.set_uniform(SceneShaderGLES2::SHADOW_COLOR, shadow_color);
+	state.scene_shader.set_uniform(SceneShaderGLES2::SHADOW_COLOR, light_ptr->shadow_color);
 
 	//specific parameters
 

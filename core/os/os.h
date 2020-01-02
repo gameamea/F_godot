@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -60,6 +60,9 @@ class OS {
 	bool _allow_hidpi;
 	bool _allow_layered;
 	bool _use_vsync;
+	bool _vsync_via_compositor;
+
+	char *last_error;
 
 	void *_stack_bottom;
 
@@ -98,9 +101,10 @@ public:
 		bool maximized;
 		bool always_on_top;
 		bool use_vsync;
+		bool vsync_via_compositor;
 		bool layered;
 		float get_aspect() const { return (float)width / (float)height; }
-		VideoMode(int p_width = 1024, int p_height = 600, bool p_fullscreen = false, bool p_resizable = true, bool p_borderless_window = false, bool p_maximized = false, bool p_always_on_top = false, bool p_use_vsync = false) {
+		VideoMode(int p_width = 1024, int p_height = 600, bool p_fullscreen = false, bool p_resizable = true, bool p_borderless_window = false, bool p_maximized = false, bool p_always_on_top = false, bool p_use_vsync = false, bool p_vsync_via_compositor = false) {
 			width = p_width;
 			height = p_height;
 			fullscreen = p_fullscreen;
@@ -109,6 +113,7 @@ public:
 			maximized = p_maximized;
 			always_on_top = p_always_on_top;
 			use_vsync = p_use_vsync;
+			vsync_via_compositor = p_vsync_via_compositor;
 			layered = false;
 		}
 	};
@@ -506,6 +511,9 @@ public:
 
 	//real, actual overridable function to switch vsync, which needs to be called from graphics thread if needed
 	virtual void _set_use_vsync(bool p_enable) {}
+
+	void set_vsync_via_compositor(bool p_enable);
+	bool is_vsync_via_compositor_enabled() const;
 
 	virtual OS::PowerState get_power_state();
 	virtual int get_power_seconds_left();

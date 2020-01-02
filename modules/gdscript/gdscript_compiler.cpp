@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1144,7 +1144,7 @@ int GDScriptCompiler::_parse_expression(CodeGen &codegen, const GDScriptParser::
 
 						GDScriptDataType assign_type = _gdtype_from_datatype(on->arguments[0]->get_datatype());
 
-						if (assign_type.has_type && !on->arguments[1]->get_datatype().has_type) {
+						if (assign_type.has_type && !on->datatype.has_type) {
 							// Typed assignment
 							switch (assign_type.kind) {
 								case GDScriptDataType::BUILTIN: {

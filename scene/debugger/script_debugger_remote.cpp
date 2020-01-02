@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -1257,7 +1257,7 @@ ScriptDebuggerRemote::ScriptDebuggerRemote() :
 		scene_tree(NULL) {
 
 	packet_peer_stream->set_stream_peer(tcp_client);
-	packet_peer_stream->set_output_buffer_max_size(1024 * 1024 * 8); //8mb should be way more than enough
+	packet_peer_stream->set_output_buffer_max_size((1024 * 1024 * 8) - 4); // 8 MiB should be way more than enough, minus 4 bytes for separator.
 
 	phl.printfunc = _print_handler;
 	phl.userdata = this;

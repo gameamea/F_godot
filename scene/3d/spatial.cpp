@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -322,6 +322,7 @@ Transform Spatial::get_relative_transform(const Node *p_parent) const {
 void Spatial::set_translation(const Vector3 &p_translation) {
 
 	data.local_transform.origin = p_translation;
+	_change_notify("transform");
 	_propagate_transform_changed(this);
 	if (data.notify_local_transform) {
 		notification(NOTIFICATION_LOCAL_TRANSFORM_CHANGED);
@@ -337,6 +338,7 @@ void Spatial::set_rotation(const Vector3 &p_euler_rad) {
 
 	data.rotation = p_euler_rad;
 	data.dirty |= DIRTY_LOCAL;
+	_change_notify("transform");
 	_propagate_transform_changed(this);
 	if (data.notify_local_transform) {
 		notification(NOTIFICATION_LOCAL_TRANSFORM_CHANGED);
@@ -357,6 +359,7 @@ void Spatial::set_scale(const Vector3 &p_scale) {
 
 	data.scale = p_scale;
 	data.dirty |= DIRTY_LOCAL;
+	_change_notify("transform");
 	_propagate_transform_changed(this);
 	if (data.notify_local_transform) {
 		notification(NOTIFICATION_LOCAL_TRANSFORM_CHANGED);

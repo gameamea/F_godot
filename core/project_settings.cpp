@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -107,7 +107,7 @@ String ProjectSettings::localize_path(const String &p_path) const {
 		if (plocal == "") {
 			return "";
 		};
-		return plocal + path.substr((sep + 1), path.size() - (sep + 1));
+		return plocal + path.substr(sep, path.size() - sep);
 	};
 }
 
@@ -769,10 +769,7 @@ Error ProjectSettings::_save_settings_text(const String &p_file, const Map<Strin
 
 			String vstr;
 			VariantWriter::write_to_string(value, vstr);
-			if (F->get().find(" ") != -1)
-				file->store_string(F->get().quote() + "=" + vstr + "\n");
-			else
-				file->store_string(F->get() + "=" + vstr + "\n");
+			file->store_string(F->get().property_name_encode() + "=" + vstr + "\n");
 		}
 	}
 

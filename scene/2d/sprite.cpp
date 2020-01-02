@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -313,6 +313,9 @@ bool Sprite::_edit_is_selected_on_click(const Point2 &p_point, double p_toleranc
 bool Sprite::is_pixel_opaque(const Point2 &p_point) const {
 
 	if (texture.is_null())
+		return false;
+
+	if (texture->get_size().width == 0 || texture->get_size().height == 0)
 		return false;
 
 	Rect2 src_rect, dst_rect;

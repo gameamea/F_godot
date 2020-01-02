@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -229,9 +229,16 @@ Error EditorSceneImporterGLTF::_parse_scenes(GLTFState &state) {
 
 	ERR_FAIL_COND_V(!state.json.has("scenes"), ERR_FILE_CORRUPT);
 	const Array &scenes = state.json["scenes"];
-	ERR_FAIL_COND_V(!scenes.size(), ERR_FILE_CORRUPT);
-	for (int i = 0; i < 1; i++) { //only first scene is imported
-		const Dictionary &s = scenes[i];
+	int loaded_scene = 0;
+	if (state.json.has("scene")) {
+		loaded_scene = state.json["scene"];
+	} else {
+		WARN_PRINT("The load-time scene is not defined in the glTF2 file. Picking the first scene.")
+	}
+
+	if (scenes.size()) {
+		ERR_FAIL_COND_V(loaded_scene >= scenes.size(), ERR_FILE_CORRUPT);
+		const Dictionary &s = scenes[loaded_scene];
 		ERR_FAIL_COND_V(!s.has("nodes"), ERR_UNAVAILABLE);
 		const Array &nodes = s["nodes"];
 		for (int j = 0; j < nodes.size(); j++) {
@@ -848,25 +855,24 @@ PoolVector<Color> EditorSceneImporterGLTF::_decode_accessor_as_color(GLTFState &
 
 	const int type = state.accessors[p_accessor].type;
 	ERR_FAIL_COND_V(!(type == TYPE_VEC3 || type == TYPE_VEC4), ret);
-	int components;
-	if (type == TYPE_VEC3) {
-		components = 3;
-	} else { // TYPE_VEC4
-		components = 4;
+	int vec_len = 3;
+	if (type == TYPE_VEC4) {
+		vec_len = 4;
 	}
 
-	ERR_FAIL_COND_V(attribs.size() % components != 0, ret);
+	ERR_FAIL_COND_V(attribs.size() % vec_len != 0, ret);
 	const double *attribs_ptr = attribs.ptr();
-	const int ret_size = attribs.size() / components;
+	const int ret_size = attribs.size() / vec_len;
 	ret.resize(ret_size);
 	{
 		PoolVector<Color>::Write w = ret.write();
 		for (int i = 0; i < ret_size; i++) {
-			w[i] = Color(attribs_ptr[i * 4 + 0], attribs_ptr[i * 4 + 1], attribs_ptr[i * 4 + 2], components == 4 ? attribs_ptr[i * 4 + 3] : 1.0);
+			w[i] = Color(attribs_ptr[i * vec_len + 0], attribs_ptr[i * vec_len + 1], attribs_ptr[i * vec_len + 2], vec_len == 4 ? attribs_ptr[i * 4 + 3] : 1.0);
 		}
 	}
 	return ret;
 }
+
 Vector<Quat> EditorSceneImporterGLTF::_decode_accessor_as_quat(GLTFState &state, const GLTFAccessorIndex p_accessor, const bool p_for_vertex) {
 
 	const Vector<double> attribs = _decode_accessor(state, p_accessor, p_for_vertex);
@@ -2136,7 +2142,6 @@ Error EditorSceneImporterGLTF::_create_skeletons(GLTFState &state) {
 
 			skeleton->add_bone(node->name);
 			skeleton->set_bone_rest(bone_index, node->xform);
-			skeleton->set_bone_pose(bone_index, node->xform);
 
 			if (node->parent >= 0 && state.nodes[node->parent]->skeleton == skel_i) {
 				const int bone_parent = skeleton->find_bone(state.nodes[node->parent]->name);
@@ -2317,7 +2322,7 @@ Error EditorSceneImporterGLTF::_parse_animations(GLTFState &state) {
 		Array samplers = d["samplers"];
 
 		if (d.has("name")) {
-			animation.name = d["name"];
+			animation.name = _sanitize_scene_name(d["name"]);
 		}
 
 		for (int j = 0; j < channels.size(); j++) {

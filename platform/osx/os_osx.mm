@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -340,12 +340,8 @@ static Vector2 get_mouse_pos(NSPoint locationInWindow, CGFloat backingScaleFacto
 
 		//Update context
 		if (OS_OSX::singleton->main_loop) {
-			[OS_OSX::singleton->context update];
-
-			//Force window resize ???
-			NSRect frame = [OS_OSX::singleton->window_object frame];
-			[OS_OSX::singleton->window_object setFrame:NSMakeRect(frame.origin.x, frame.origin.y, 1, 1) display:YES];
-			[OS_OSX::singleton->window_object setFrame:frame display:YES];
+			//Force window resize event
+			[self windowDidResize:notification];
 		}
 	}
 }
@@ -1632,8 +1628,6 @@ Error OS_OSX::initialize(const VideoMode &p_desired, int p_video_driver, int p_a
 	visual_server->init();
 	AudioDriverManager::initialize(p_audio_driver);
 
-	camera_server = memnew(CameraOSX);
-
 	input = memnew(InputDefault);
 	joypad_osx = memnew(JoypadOSX);
 
@@ -1662,11 +1656,6 @@ void OS_OSX::finalize() {
 	CGDisplayRemoveReconfigurationCallback(displays_arrangement_changed, NULL);
 
 	delete_main_loop();
-
-	if (camera_server) {
-		memdelete(camera_server);
-		camera_server = NULL;
-	}
 
 	memdelete(joypad_osx);
 	memdelete(input);
@@ -2224,7 +2213,7 @@ Error OS_OSX::shell_open(String p_uri) {
 }
 
 String OS_OSX::get_locale() const {
-	NSString *locale_code = [[NSLocale currentLocale] localeIdentifier];
+	NSString *locale_code = [[NSLocale preferredLanguages] objectAtIndex:0];
 	return [locale_code UTF8String];
 }
 

@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,7 +33,9 @@
 #include "core/io/json.h"
 #include "core/version.h"
 #include "editor/editor_node.h"
+#include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
+#include "editor/project_settings_editor.h"
 
 void EditorAssetLibraryItem::configure(const String &p_title, int p_asset_id, const String &p_category, int p_category_id, const String &p_author, int p_author_id, const String &p_cost) {
 
@@ -652,12 +654,12 @@ const char *EditorAssetLibrary::sort_key[SORT_MAX] = {
 };
 
 const char *EditorAssetLibrary::sort_text[SORT_MAX] = {
-	"Recently Updated",
-	"Least Recently Updated",
-	"Name (A-Z)",
-	"Name (Z-A)",
-	"License (A-Z)", // "cost" stores the SPDX license name in the Godot Asset Library.
-	"License (Z-A)", // "cost" stores the SPDX license name in the Godot Asset Library.
+	TTRC("Recently Updated"),
+	TTRC("Least Recently Updated"),
+	TTRC("Name (A-Z)"),
+	TTRC("Name (Z-A)"),
+	TTRC("License (A-Z)"), // "cost" stores the SPDX license name in the Godot Asset Library.
+	TTRC("License (Z-A)"), // "cost" stores the SPDX license name in the Godot Asset Library.
 };
 
 const char *EditorAssetLibrary::support_key[SUPPORT_MAX] = {
@@ -1383,7 +1385,7 @@ EditorAssetLibrary::EditorAssetLibrary(bool p_templates_only) {
 	search_hb2->add_child(memnew(Label(TTR("Sort:") + " ")));
 	sort = memnew(OptionButton);
 	for (int i = 0; i < SORT_MAX; i++) {
-		sort->add_item(sort_text[i]);
+		sort->add_item(TTRGET(sort_text[i]));
 	}
 
 	search_hb2->add_child(sort);
@@ -1494,6 +1496,7 @@ EditorAssetLibrary::EditorAssetLibrary(bool p_templates_only) {
 	error_label->add_color_override("color", get_color("error_color", "Editor"));
 	error_hb->add_child(error_label);
 	error_tr = memnew(TextureRect);
+	error_tr->set_v_size_flags(Control::SIZE_SHRINK_CENTER);
 	error_hb->add_child(error_tr);
 
 	description = NULL;

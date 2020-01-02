@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -43,6 +43,7 @@
 
 #include "dir_access_jandroid.h"
 #include "file_access_jandroid.h"
+#include "net_socket_android.h"
 
 #include <dlfcn.h>
 
@@ -106,6 +107,8 @@ void OS_Android::initialize_core() {
 		DirAccess::make_default<DirAccessJAndroid>(DirAccess::ACCESS_RESOURCES);
 	DirAccess::make_default<DirAccessUnix>(DirAccess::ACCESS_USERDATA);
 	DirAccess::make_default<DirAccessUnix>(DirAccess::ACCESS_FILESYSTEM);
+
+	NetSocketAndroid::make_default();
 }
 
 void OS_Android::set_opengl_extensions(const char *p_gl_extensions) {
@@ -175,9 +178,6 @@ Error OS_Android::initialize(const VideoMode &p_desired, int p_video_driver, int
 	input = memnew(InputDefault);
 	input->set_fallback_mapping(godot_java->get_input_fallback_mapping());
 
-	///@TODO implement a subclass for Android and instantiate that instead
-	camera_server = memnew(CameraServer);
-
 	//power_manager = memnew(PowerAndroid);
 
 	return OK;
@@ -195,8 +195,6 @@ void OS_Android::delete_main_loop() {
 }
 
 void OS_Android::finalize() {
-
-	memdelete(camera_server);
 
 	memdelete(input);
 }

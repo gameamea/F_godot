@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -37,6 +37,7 @@
 #include "core/project_settings.h"
 #include "core/sort_array.h"
 #include "editor/editor_node.h"
+#include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
 #include "editor/plugins/animation_player_editor_plugin.h"
 #include "editor/plugins/script_editor_plugin.h"
@@ -47,6 +48,7 @@
 #include "scene/3d/mesh_instance.h"
 #include "scene/3d/physics_body.h"
 #include "scene/3d/visual_instance.h"
+#include "scene/gui/viewport_container.h"
 #include "scene/resources/packed_scene.h"
 #include "scene/resources/surface_tool.h"
 
@@ -298,6 +300,7 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 
 	Vector3 ray = _get_ray(p_pos);
 	Vector3 pos = _get_ray_pos(p_pos);
+	Vector2 shrinked_pos = p_pos / viewport_container->get_stretch_shrink();
 
 	Vector<ObjectID> instances = VisualServer::get_singleton()->instances_cull_ray(pos, ray, get_tree()->get_root()->get_world()->get_scenario());
 	Set<Ref<EditorSpatialGizmo> > found_gizmos;
@@ -326,7 +329,7 @@ ObjectID SpatialEditorViewport::_select_ray(const Point2 &p_pos, bool p_append, 
 		Vector3 normal;
 
 		int handle = -1;
-		bool inters = seg->intersect_ray(camera, p_pos, point, normal, &handle, p_alt_select);
+		bool inters = seg->intersect_ray(camera, shrinked_pos, point, normal, &handle, p_alt_select);
 
 		if (!inters)
 			continue;
@@ -521,7 +524,7 @@ void SpatialEditorViewport::_select_region() {
 
 		if (selected.find(item) != -1) continue;
 
-		if (_is_node_locked(Object::cast_to<Spatial>(item))) continue;
+		if (_is_node_locked(item)) continue;
 
 		Ref<EditorSpatialGizmo> seg = sp->get_gizmo();
 

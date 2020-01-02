@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -2912,7 +2912,7 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 			tk = _get_token();
 			if (tk.type == TK_PARENTHESIS_OPEN) {
 				//a function
-				StringName name = identifier;
+				const StringName &name = identifier;
 
 				OperatorNode *func = alloc_node<OperatorNode>();
 				func->op = OP_CALL;
@@ -5099,7 +5099,7 @@ Error ShaderLanguage::_parse_shader(const Map<StringName, FunctionInfo> &p_funct
 							if (!expr)
 								return ERR_PARSE_ERROR;
 
-							if (expr->type != Node::TYPE_CONSTANT) {
+							if (expr->type == Node::TYPE_OPERATOR && ((OperatorNode *)expr)->op == OP_CALL) {
 								_set_error("Expected constant expression after '='");
 								return ERR_PARSE_ERROR;
 							}

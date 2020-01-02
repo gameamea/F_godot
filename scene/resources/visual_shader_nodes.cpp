@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -715,6 +715,7 @@ void VisualShaderNodeTexture::_bind_methods() {
 	BIND_ENUM_CONSTANT(SOURCE_2D_TEXTURE);
 	BIND_ENUM_CONSTANT(SOURCE_2D_NORMAL);
 	BIND_ENUM_CONSTANT(SOURCE_DEPTH);
+	BIND_ENUM_CONSTANT(SOURCE_PORT);
 	BIND_ENUM_CONSTANT(TYPE_DATA);
 	BIND_ENUM_CONSTANT(TYPE_COLOR);
 	BIND_ENUM_CONSTANT(TYPE_NORMALMAP);

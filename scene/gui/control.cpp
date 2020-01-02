@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -2012,14 +2012,15 @@ Control *Control::find_next_valid_focus() const {
 
 		if (!data.focus_next.is_empty()) {
 			Node *n = get_node(data.focus_next);
+			Control *c;
 			if (n) {
-				from = Object::cast_to<Control>(n);
-				ERR_FAIL_COND_V_MSG(!from, NULL, "Next focus node is not a control: " + n->get_name() + ".");
+				c = Object::cast_to<Control>(n);
+				ERR_FAIL_COND_V_MSG(!c, NULL, "Next focus node is not a control: " + n->get_name() + ".");
 			} else {
 				return NULL;
 			}
-			if (from->is_visible() && from->get_focus_mode() != FOCUS_NONE)
-				return from;
+			if (c->is_visible() && c->get_focus_mode() != FOCUS_NONE)
+				return c;
 		}
 
 		// find next child
@@ -2102,14 +2103,15 @@ Control *Control::find_prev_valid_focus() const {
 
 		if (!data.focus_prev.is_empty()) {
 			Node *n = get_node(data.focus_prev);
+			Control *c;
 			if (n) {
-				from = Object::cast_to<Control>(n);
-				ERR_FAIL_COND_V_MSG(!from, NULL, "Previous focus node is not a control: " + n->get_name() + ".");
+				c = Object::cast_to<Control>(n);
+				ERR_FAIL_COND_V_MSG(!c, NULL, "Previous focus node is not a control: " + n->get_name() + ".");
 			} else {
 				return NULL;
 			}
-			if (from->is_visible() && from->get_focus_mode() != FOCUS_NONE)
-				return from;
+			if (c->is_visible() && c->get_focus_mode() != FOCUS_NONE)
+				return c;
 		}
 
 		// find prev child
@@ -2284,7 +2286,7 @@ void Control::set_theme(const Ref<Theme> &p_theme) {
 	}
 
 	if (data.theme.is_valid()) {
-		data.theme->connect("changed", this, "_theme_changed");
+		data.theme->connect("changed", this, "_theme_changed", varray(), CONNECT_DEFERRED);
 	}
 }
 

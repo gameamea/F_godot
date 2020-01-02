@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -43,6 +43,7 @@
 #include "java_class_wrapper.h"
 #include "main/input_default.h"
 #include "main/main.h"
+#include "net_socket_android.h"
 #include "os_android.h"
 #include "string_android.h"
 #include "thread_jandroid.h"
@@ -635,6 +636,7 @@ JNIEXPORT void JNICALL Java_org_godotengine_godot_GodotLib_initialize(JNIEnv *en
 
 	DirAccessJAndroid::setup(godot_io_java->get_instance());
 	AudioDriverAndroid::setup(godot_io_java->get_instance());
+	NetSocketAndroid::setup(godot_java->get_member_object("netUtils", "Lorg/godotengine/godot/utils/GodotNetUtils;", env));
 
 	os_android = new OS_Android(godot_java, godot_io_java, p_use_apk_expansion);
 

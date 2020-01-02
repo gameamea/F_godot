@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -31,7 +31,6 @@
 #ifndef OS_WINDOWS_H
 #define OS_WINDOWS_H
 
-#include "camera_win.h"
 #include "context_gl_windows.h"
 #include "core/os/input.h"
 #include "core/os/os.h"
@@ -175,7 +174,6 @@ class OS_Windows : public OS {
 	ContextGL_Windows *gl_context;
 #endif
 	VisualServer *visual_server;
-	CameraWindows *camera_server;
 	int pressrc;
 	HINSTANCE hInstance; // Holds The Instance Of The Application
 	HWND hWnd;

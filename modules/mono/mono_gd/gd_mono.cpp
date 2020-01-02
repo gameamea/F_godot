@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2019 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2019 Godot Engine contributors (cf. AUTHORS.md)    */
+/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -102,32 +102,22 @@ void gd_mono_profiler_init() {
 	bool profiler_enabled = GLOBAL_DEF("mono/profiler/enabled", false);
 	if (profiler_enabled) {
 		mono_profiler_load(profiler_args.utf8());
+		return;
+	}
+
+	const String env_var_name = "MONO_ENV_OPTIONS";
+	if (OS::get_singleton()->has_environment(env_var_name)) {
+		const auto mono_env_ops = OS::get_singleton()->get_environment(env_var_name);
+		// Usually MONO_ENV_OPTIONS looks like:   --profile=jb:prof=timeline,ctl=remote,host=127.0.0.1:55467
+		const String prefix = "--profile=";
+		if (mono_env_ops.begins_with(prefix)) {
+			const auto ops = mono_env_ops.substr(prefix.length(), mono_env_ops.length());
+			mono_profiler_load(ops.utf8());
+		}
 	}
 }
 
 #if defined(DEBUG_ENABLED)
-
-bool gd_mono_wait_for_debugger_msecs(uint32_t p_msecs) {
-
-	do {
-		if (mono_is_debugger_attached())
-			return true;
-
-		int last_tick = OS::get_singleton()->get_ticks_msec();
-
-		OS::get_singleton()->delay_usec((p_msecs < 25 ? p_msecs : 25) * 1000);
-
-		uint32_t tdiff = OS::get_singleton()->get_ticks_msec() - last_tick;
-
-		if (tdiff > p_msecs) {
-			p_msecs = 0;
-		} else {
-			p_msecs -= tdiff;
-		}
-	} while (p_msecs > 0);
-
-	return mono_is_debugger_attached();
-}
 
 void gd_mono_debug_init() {
 
@@ -239,35 +229,22 @@ void GDMono::add_mono_shared_libs_dir_to_path() {
 #endif // WINDOWS_ENABLED || UNIX_ENABLED
 }
 
-void GDMono::initialize() {
+void GDMono::determine_mono_dirs(String &r_assembly_rootdir, String &r_config_dir) {
 
-	ERR_FAIL_NULL(Engine::get_singleton());
-
-	print_verbose("Mono: Initializing module...");
-
-	char *runtime_build_info = mono_get_runtime_build_info();
-	print_verbose("Mono JIT compiler version " + String(runtime_build_info));
-	mono_free(runtime_build_info);
-
-#ifdef DEBUG_METHODS_ENABLED
-	_initialize_and_check_api_hashes();
-#endif
-
-	GDMonoLog::get_singleton()->initialize();
-
-	String assembly_rootdir;
-	String config_dir;
+	String bundled_assembly_rootdir = GodotSharpDirs::get_data_mono_lib_dir();
+	String bundled_config_dir = GodotSharpDirs::get_data_mono_etc_dir();
 
 #ifdef TOOLS_ENABLED
+
 #if defined(WINDOWS_ENABLED)
 	mono_reg_info = MonoRegUtils::find_mono();
 
 	if (mono_reg_info.assembly_dir.length() && DirAccess::exists(mono_reg_info.assembly_dir)) {
-		assembly_rootdir = mono_reg_info.assembly_dir;
+		r_assembly_rootdir = mono_reg_info.assembly_dir;
 	}
 
 	if (mono_reg_info.config_dir.length() && DirAccess::exists(mono_reg_info.config_dir)) {
-		config_dir = mono_reg_info.config_dir;
+		r_config_dir = mono_reg_info.config_dir;
 	}
 #elif defined(OSX_ENABLED)
 	const char *c_assembly_rootdir = mono_assembly_getrootdir();
@@ -284,29 +261,24 @@ void GDMono::initialize() {
 			String hint_config_dir = path::join(locations[i], "etc");
 
 			if (FileAccess::exists(hint_mscorlib_path) && DirAccess::exists(hint_config_dir)) {
-				assembly_rootdir = hint_assembly_rootdir;
-				config_dir = hint_config_dir;
+				r_assembly_rootdir = hint_assembly_rootdir;
+				r_config_dir = hint_config_dir;
 				break;
 			}
 		}
 	}
 #endif
-#endif // TOOLS_ENABLED
 
-	String bundled_assembly_rootdir = GodotSharpDirs::get_data_mono_lib_dir();
-	String bundled_config_dir = GodotSharpDirs::get_data_mono_etc_dir();
-
-#ifdef TOOLS_ENABLED
 	if (DirAccess::exists(bundled_assembly_rootdir)) {
-		assembly_rootdir = bundled_assembly_rootdir;
+		r_assembly_rootdir = bundled_assembly_rootdir;
 	}
 
 	if (DirAccess::exists(bundled_config_dir)) {
-		config_dir = bundled_config_dir;
+		r_config_dir = bundled_config_dir;
 	}
 
 #ifdef WINDOWS_ENABLED
-	if (assembly_rootdir.empty() || config_dir.empty()) {
+	if (r_assembly_rootdir.empty() || r_config_dir.empty()) {
 		ERR_PRINT("Cannot find Mono in the registry.");
 		// Assertion: if they are not set, then they weren't found in the registry
 		CRASH_COND(mono_reg_info.assembly_dir.length() > 0 || mono_reg_info.config_dir.length() > 0);
@@ -314,12 +286,32 @@ void GDMono::initialize() {
 #endif // WINDOWS_ENABLED
 
 #else
-	// These are always the directories in export templates
-	assembly_rootdir = bundled_assembly_rootdir;
-	config_dir = bundled_config_dir;
-#endif // TOOLS_ENABLED
+	// Export templates always use the bundled directories
+	r_assembly_rootdir = bundled_assembly_rootdir;
+	r_config_dir = bundled_config_dir;
+#endif
+}
+
+void GDMono::initialize() {
+
+	ERR_FAIL_NULL(Engine::get_singleton());
+
+	print_verbose("Mono: Initializing module...");
+
+	char *runtime_build_info = mono_get_runtime_build_info();
+	print_verbose("Mono JIT compiler version " + String(runtime_build_info));
+	mono_free(runtime_build_info);
+
+	_init_godot_api_hashes();
+	_init_exception_policy();
+
+	GDMonoLog::get_singleton()->initialize();
 
 #if !defined(JAVASCRIPT_ENABLED)
+	String assembly_rootdir;
+	String config_dir;
+	determine_mono_dirs(assembly_rootdir, config_dir);
+
 	// Leak if we call mono_set_dirs more than once
 	mono_set_dirs(assembly_rootdir.length() ? assembly_rootdir.utf8().get_data() : NULL,
 			config_dir.length() ? config_dir.utf8().get_data() : NULL);
@@ -328,20 +320,8 @@ void GDMono::initialize() {
 #endif
 
 #if defined(ANDROID_ENABLED)
-	GDMonoAndroid::register_android_dl_fallback();
+	GDMonoAndroid::initialize();
 #endif
-
-	{
-		PropertyInfo exc_policy_prop = PropertyInfo(Variant::INT, "mono/unhandled_exception_policy", PROPERTY_HINT_ENUM,
-				vformat("Terminate Application:%s,Log Error:%s", (int)POLICY_TERMINATE_APP, (int)POLICY_LOG_ERROR));
-		unhandled_exception_policy = (UnhandledExceptionPolicy)(int)GLOBAL_DEF(exc_policy_prop.name, (int)POLICY_TERMINATE_APP);
-		ProjectSettings::get_singleton()->set_custom_property_info(exc_policy_prop.name, exc_policy_prop);
-
-		if (Engine::get_singleton()->is_editor_hint()) {
-			// Unhandled exceptions should not terminate the editor
-			unhandled_exception_policy = POLICY_LOG_ERROR;
-		}
-	}
 
 	GDMonoAssembly::initialize();
 
@@ -358,17 +338,23 @@ void GDMono::initialize() {
 	mono_install_unhandled_exception_hook(&unhandled_exception_hook, NULL);
 
 #ifndef TOOLS_ENABLED
-	// Export templates only load the Mono runtime if the project uses it
-	if (!DirAccess::exists("res://.mono"))
+	// Exported games that don't use C# must still work. They likely don't ship with mscorlib.
+	// We only initialize the Mono runtime if we can find mscorlib. Otherwise it would crash.
+	if (GDMonoAssembly::find_assembly("mscorlib.dll").empty()) {
+		print_verbose("Mono: Skipping runtime initialization because 'mscorlib.dll' could not be found");
 		return;
+	}
 #endif
 
-#if !defined(WINDOWS_ENABLED) && !defined(NO_MONO_THREADS_SUSPEND_WORKAROUND)
+#if !defined(NO_MONO_THREADS_SUSPEND_WORKAROUND)
 	// FIXME: Temporary workaround. See: https://github.com/godotengine/godot/issues/29812
 	if (!OS::get_singleton()->has_environment("MONO_THREADS_SUSPEND")) {
 		OS::get_singleton()->set_environment("MONO_THREADS_SUSPEND", "preemptive");
 	}
 #endif
+
+	// NOTE: Internal calls must be registered after the Mono runtime initialization.
+	// Otherwise registration fails with the error: 'assertion 'hash != NULL' failed'.
 
 	root_domain = gd_initialize_mono_runtime();
 	ERR_FAIL_NULL_MSG(root_domain, "Mono: Failed to initialize runtime.");
@@ -383,18 +369,16 @@ void GDMono::initialize() {
 
 	print_verbose("Mono: Runtime initialized");
 
+#if defined(ANDROID_ENABLED)
+	GDMonoAndroid::register_internal_calls();
+#endif
+
 	// mscorlib assembly MUST be present at initialization
 	bool corlib_loaded = _load_corlib_assembly();
 	ERR_FAIL_COND_MSG(!corlib_loaded, "Mono: Failed to load mscorlib assembly.");
 
 	Error domain_load_err = _load_scripts_domain();
 	ERR_FAIL_COND_MSG(domain_load_err != OK, "Mono: Failed to load scripts domain.");
-
-#if defined(DEBUG_ENABLED) && !defined(JAVASCRIPT_ENABLED)
-	bool debugger_attached = gd_mono_wait_for_debugger_msecs(500);
-	if (!debugger_attached && OS::get_singleton()->is_stdout_verbose())
-		print_error("Mono: Debugger wait timeout");
-#endif
 
 	_register_internal_calls();
 
@@ -475,9 +459,8 @@ void GDMono::_register_internal_calls() {
 	GodotSharpBindings::register_generated_icalls();
 }
 
-void GDMono::_initialize_and_check_api_hashes() {
-#ifdef MONO_GLUE_ENABLED
-#ifdef DEBUG_METHODS_ENABLED
+void GDMono::_init_godot_api_hashes() {
+#if defined(MONO_GLUE_ENABLED) && defined(DEBUG_METHODS_ENABLED)
 	if (get_api_core_hash() != GodotSharpBindings::get_core_api_hash()) {
 		ERR_PRINT("Mono: Core API hash mismatch.");
 	}
@@ -487,8 +470,19 @@ void GDMono::_initialize_and_check_api_hashes() {
 		ERR_PRINT("Mono: Editor API hash mismatch.");
 	}
 #endif // TOOLS_ENABLED
-#endif // DEBUG_METHODS_ENABLED
-#endif // MONO_GLUE_ENABLED
+#endif // MONO_GLUE_ENABLED && DEBUG_METHODS_ENABLED
+}
+
+void GDMono::_init_exception_policy() {
+	PropertyInfo exc_policy_prop = PropertyInfo(Variant::INT, "mono/unhandled_exception_policy", PROPERTY_HINT_ENUM,
+			vformat("Terminate Application:%s,Log Error:%s", (int)POLICY_TERMINATE_APP, (int)POLICY_LOG_ERROR));
+	unhandled_exception_policy = (UnhandledExceptionPolicy)(int)GLOBAL_DEF(exc_policy_prop.name, (int)POLICY_TERMINATE_APP);
+	ProjectSettings::get_singleton()->set_custom_property_info(exc_policy_prop.name, exc_policy_prop);
+
+	if (Engine::get_singleton()->is_editor_hint()) {
+		// Unhandled exceptions should not terminate the editor
+		unhandled_exception_policy = POLICY_LOG_ERROR;
+	}
 }
 
 void GDMono::add_assembly(uint32_t p_domain_id, GDMonoAssembly *p_assembly) {
@@ -1249,6 +1243,10 @@ GDMono::~GDMono() {
 		print_verbose("Mono: Runtime cleanup...");
 
 		mono_jit_cleanup(root_domain);
+
+#if defined(ANDROID_ENABLED)
+		GDMonoAndroid::cleanup();
+#endif
 
 		print_verbose("Mono: Finalized");
 
