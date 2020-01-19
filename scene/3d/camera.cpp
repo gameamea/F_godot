@@ -390,18 +390,17 @@ Vector3 Camera::project_position(const Point2 &p_point, float p_z_depth) const {
 
 	ERR_FAIL_COND_V_MSG(!is_inside_tree(), Vector3(), "Camera is not inside scene.");
 
-	if (p_z_depth == 0) {
+	if (p_z_depth == 0 && mode != PROJECTION_ORTHOGONAL) {
 		return get_global_transform().origin;
 	}
-
 	Size2 viewport_size = get_viewport()->get_visible_rect().size;
 
 	CameraMatrix cm;
 
 	if (mode == PROJECTION_ORTHOGONAL)
-		cm.set_orthogonal(size, viewport_size.aspect(), near, far, keep_aspect == KEEP_WIDTH);
+		cm.set_orthogonal(size, viewport_size.aspect(), p_z_depth, far, keep_aspect == KEEP_WIDTH);
 	else
-		cm.set_perspective(fov, viewport_size.aspect(), near, far, keep_aspect == KEEP_WIDTH);
+		cm.set_perspective(fov, viewport_size.aspect(), p_z_depth, far, keep_aspect == KEEP_WIDTH);
 
 	Size2 vp_size;
 	cm.get_viewport_size(vp_size.x, vp_size.y);

@@ -90,6 +90,7 @@ bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory 
 
 	// Create all items for the files in the subdirectory.
 	if (display_mode == DISPLAY_MODE_TREE_ONLY) {
+		String main_scene = ProjectSettings::get_singleton()->get("application/run/main_scene");
 		for (int i = 0; i < p_dir->get_file_count(); i++) {
 
 			String file_type = p_dir->get_file_type(i);
@@ -119,7 +120,6 @@ bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory 
 				file_item->select(0);
 				file_item->set_as_cursor(0);
 			}
-			String main_scene = ProjectSettings::get_singleton()->get("application/run/main_scene");
 			if (main_scene == file_metadata) {
 				file_item->set_custom_color(0, get_color("accent_color", "Editor"));
 			}
@@ -140,6 +140,7 @@ bool FileSystemDock::_create_tree(TreeItem *p_parent, EditorFileSystemDirectory 
 			subdirectory_item->set_collapsed(false);
 		} else if (dname != "res://") {
 			subdirectory_item->get_parent()->remove_child(subdirectory_item);
+			memdelete(subdirectory_item);
 		}
 	}
 
@@ -750,6 +751,7 @@ void FileSystemDock::_update_file_list(bool p_keep_selection) {
 	}
 
 	// Fills the ItemList control node from the FileInfos.
+	String main_scene = ProjectSettings::get_singleton()->get("application/run/main_scene");
 	String oi = "Object";
 	for (List<FileInfo>::Element *E = filelist.front(); E; E = E->next()) {
 		FileInfo *finfo = &(E->get());
@@ -784,6 +786,10 @@ void FileSystemDock::_update_file_list(bool p_keep_selection) {
 			files->add_item(fname, type_icon, true);
 			item_index = files->get_item_count() - 1;
 			files->set_item_metadata(item_index, fpath);
+		}
+
+		if (fpath == main_scene) {
+			files->set_item_custom_fg_color(item_index, get_color("accent_color", "Editor"));
 		}
 
 		// Generate the preview.
@@ -1584,6 +1590,7 @@ void FileSystemDock::_file_option(int p_option, const Vector<String> &p_selected
 				ProjectSettings::get_singleton()->set("application/run/main_scene", p_selected[0]);
 				ProjectSettings::get_singleton()->save();
 				_update_tree(_compute_uncollapsed_paths());
+				_update_file_list(true);
 			}
 		} break;
 
@@ -1755,8 +1762,8 @@ void FileSystemDock::_file_option(int p_option, const Vector<String> &p_selected
 			if (!fpath.ends_with("/")) {
 				fpath = fpath.get_base_dir();
 			}
-			make_script_dialog->config("Node", fpath.plus_file("new_script.gd"), false);
-			make_script_dialog->popup_centered(Size2(300, 300) * EDSCALE);
+			make_script_dialog->config("Node", fpath.plus_file("new_script.gd"), false, false);
+			make_script_dialog->popup_centered();
 		} break;
 
 		case FILE_COPY_PATH: {

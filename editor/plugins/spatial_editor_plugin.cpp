@@ -2135,6 +2135,13 @@ void SpatialEditorViewport::_notification(int p_what) {
 		call_deferred("update_transform_gizmo_view");
 	}
 
+	if (p_what == NOTIFICATION_READY) {
+		// The crosshair icon doesn't depend on the editor theme.
+		crosshair->set_texture(get_icon("Crosshair", "EditorIcons"));
+		// Set the anchors and margins after changing the icon to ensure it's centered correctly.
+		crosshair->set_anchors_and_margins_preset(PRESET_CENTER);
+	}
+
 	if (p_what == NOTIFICATION_PROCESS) {
 
 		real_t delta = get_process_delta_time();
@@ -2254,6 +2261,10 @@ void SpatialEditorViewport::_notification(int p_what) {
 		} else {
 			current_camera = camera;
 		}
+
+		// Display the crosshair only while freelooking. Hide it otherwise,
+		// as the crosshair can be distracting.
+		crosshair->set_visible(freelook_active);
 
 		if (show_info) {
 			String text;
@@ -3546,6 +3557,10 @@ SpatialEditorViewport::SpatialEditorViewport(SpatialEditor *p_spatial_editor, Ed
 	camera->make_current();
 	surface->set_focus_mode(FOCUS_ALL);
 
+	crosshair = memnew(TextureRect);
+	crosshair->set_mouse_filter(MOUSE_FILTER_IGNORE);
+	surface->add_child(crosshair);
+
 	VBoxContainer *vbox = memnew(VBoxContainer);
 	surface->add_child(vbox);
 	vbox->set_position(Point2(10, 10) * EDSCALE);
@@ -3597,6 +3612,24 @@ SpatialEditorViewport::SpatialEditorViewport(SpatialEditor *p_spatial_editor, Ed
 	view_menu->get_popup()->connect("id_pressed", this, "_menu_option");
 
 	view_menu->set_disable_shortcuts(true);
+
+	if (OS::get_singleton()->get_current_video_driver() == OS::VIDEO_DRIVER_GLES2) {
+		// Alternate display modes only work when using the GLES3 renderer; make this explicit.
+		const int normal_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_NORMAL);
+		const int wireframe_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_WIREFRAME);
+		const int overdraw_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_OVERDRAW);
+		const int shadeless_idx = view_menu->get_popup()->get_item_index(VIEW_DISPLAY_SHADELESS);
+		const String unsupported_tooltip = TTR("Not available when using the GLES2 renderer.");
+
+		view_menu->get_popup()->set_item_disabled(normal_idx, true);
+		view_menu->get_popup()->set_item_tooltip(normal_idx, unsupported_tooltip);
+		view_menu->get_popup()->set_item_disabled(wireframe_idx, true);
+		view_menu->get_popup()->set_item_tooltip(wireframe_idx, unsupported_tooltip);
+		view_menu->get_popup()->set_item_disabled(overdraw_idx, true);
+		view_menu->get_popup()->set_item_tooltip(overdraw_idx, unsupported_tooltip);
+		view_menu->get_popup()->set_item_disabled(shadeless_idx, true);
+		view_menu->get_popup()->set_item_tooltip(shadeless_idx, unsupported_tooltip);
+	}
 
 	ED_SHORTCUT("spatial_editor/freelook_left", TTR("Freelook Left"), KEY_A);
 	ED_SHORTCUT("spatial_editor/freelook_right", TTR("Freelook Right"), KEY_D);
@@ -6145,6 +6178,8 @@ void EditorSpatialGizmoPlugin::create_icon_material(const String &p_name, const 
 		icon->set_albedo(color);
 
 		icon->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+		icon->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+		icon->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
 		icon->set_cull_mode(SpatialMaterial::CULL_DISABLED);
 		icon->set_depth_draw_mode(SpatialMaterial::DEPTH_DRAW_DISABLED);
 		icon->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);

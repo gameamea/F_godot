@@ -47,6 +47,7 @@
 #include "editor/plugins/canvas_item_editor_plugin.h"
 #endif
 
+#ifdef TOOLS_ENABLED
 Dictionary Control::_edit_get_state() const {
 
 	Dictionary s;
@@ -155,6 +156,11 @@ bool Control::_edit_use_pivot() const {
 	return true;
 }
 
+Size2 Control::_edit_get_minimum_size() const {
+	return get_combined_minimum_size();
+}
+#endif
+
 void Control::set_custom_minimum_size(const Size2 &p_custom) {
 
 	if (p_custom == data.custom_minimum_size)
@@ -191,11 +197,6 @@ Size2 Control::get_combined_minimum_size() const {
 		const_cast<Control *>(this)->_update_minimum_size_cache();
 	}
 	return data.minimum_size_cache;
-}
-
-Size2 Control::_edit_get_minimum_size() const {
-
-	return get_combined_minimum_size();
 }
 
 Transform2D Control::_get_internal_transform() const {
@@ -2681,6 +2682,11 @@ Vector2 Control::get_pivot_offset() const {
 void Control::set_scale(const Vector2 &p_scale) {
 
 	data.scale = p_scale;
+	// Avoid having 0 scale values, can lead to errors in physics and rendering.
+	if (data.scale.x == 0)
+		data.scale.x = CMP_EPSILON;
+	if (data.scale.y == 0)
+		data.scale.y = CMP_EPSILON;
 	update();
 	_notify_transform();
 }

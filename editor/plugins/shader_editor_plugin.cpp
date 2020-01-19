@@ -35,6 +35,7 @@
 #include "core/os/keyboard.h"
 #include "core/os/os.h"
 #include "editor/editor_node.h"
+#include "editor/editor_scale.h"
 #include "editor/editor_settings.h"
 #include "editor/property_editor.h"
 #include "servers/visual/shader_types.h"
@@ -378,6 +379,8 @@ void ShaderEditor::_editor_settings_changed() {
 	shader_editor->get_text_edit()->cursor_set_block_mode(EditorSettings::get_singleton()->get("text_editor/cursor/block_caret"));
 	shader_editor->get_text_edit()->set_smooth_scroll_enabled(EditorSettings::get_singleton()->get("text_editor/navigation/smooth_scrolling"));
 	shader_editor->get_text_edit()->set_v_scroll_speed(EditorSettings::get_singleton()->get("text_editor/navigation/v_scroll_speed"));
+	shader_editor->get_text_edit()->set_draw_minimap(EditorSettings::get_singleton()->get("text_editor/navigation/show_minimap"));
+	shader_editor->get_text_edit()->set_minimap_width((int)EditorSettings::get_singleton()->get("text_editor/navigation/minimap_width") * EDSCALE);
 }
 
 void ShaderEditor::_bind_methods() {
@@ -756,7 +759,7 @@ ShaderEditorPlugin::ShaderEditorPlugin(EditorNode *p_node) {
 	editor = p_node;
 	shader_editor = memnew(ShaderEditor(p_node));
 
-	shader_editor->set_custom_minimum_size(Size2(0, 300));
+	shader_editor->set_custom_minimum_size(Size2(0, 300) * EDSCALE);
 	button = editor->add_bottom_panel_item(TTR("Shader"), shader_editor);
 	button->hide();
 }
