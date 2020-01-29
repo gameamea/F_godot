@@ -2076,17 +2076,6 @@ msgstr "টিউটোরিয়ালসমূহ"
 
 #: editor/editor_help.cpp
 #, fuzzy
-msgid ""
-"There are currently no tutorials for this class, you can [color=$color][url="
-"$url]contribute one[/url][/color] or [color=$color][url=$url2]request one[/"
-"url][/color]."
-msgstr ""
-"এই মেথড সম্পর্কে বিস্তারিত তথ্য লিপিবদ্ধ করা হয়নি। অনুগ্রহ করে তথ্য প্রদানের মাধ্যমে "
-"সহায়তা করুন। তথ্য প্রদানের জন্য [color=$color][url=$url], [/url][/color] ফরম্যাট "
-"ব্যাবহার করুন !"
-
-#: editor/editor_help.cpp
-#, fuzzy
 msgid "Properties"
 msgstr "প্রোপার্টি-সমূহ:"
 
@@ -4888,7 +4877,6 @@ msgid "Animation Tools"
 msgstr "অ্যানিমেশনের সরঞ্জামসমূহ"
 
 #: editor/plugins/animation_player_editor_plugin.cpp
-#: editor/plugins/canvas_item_editor_plugin.cpp
 msgid "Animation"
 msgstr "অ্যানিমেশন"
 
@@ -6042,6 +6030,11 @@ msgid "Auto Insert Key"
 msgstr "অ্যানিমেশনে (Anim) চাবি যোগ করুন"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
+#, fuzzy
+msgid "Animation Key and Pose Options"
+msgstr "অ্যানিমেশনের চাবি সন্নিবেশিত হয়েছে।"
+
+#: editor/plugins/canvas_item_editor_plugin.cpp
 msgid "Insert Key (Existing Tracks)"
 msgstr "চাবি সন্নিবেশ করুন (বিদ্যমান ট্র্যাক/পথসমূহ)"
 
@@ -6351,7 +6344,6 @@ msgid "No mesh to debug."
 msgstr ""
 
 #: editor/plugins/mesh_instance_editor_plugin.cpp
-#: editor/plugins/sprite_editor_plugin.cpp
 msgid "Model has no UV in this layer"
 msgstr ""
 
@@ -7843,6 +7835,10 @@ msgstr "সম্পাদনযোগ্য অংশীদারীসমূ�
 #, fuzzy
 msgid "Cinematic Preview"
 msgstr "মেস লাইব্রেরি তৈরি হচ্ছে"
+
+#: editor/plugins/spatial_editor_plugin.cpp
+msgid "Not available when using the GLES2 renderer."
+msgstr ""
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Freelook Left"
@@ -13387,6 +13383,16 @@ msgstr ""
 #: servers/visual/shader_language.cpp
 msgid "Constants cannot be modified."
 msgstr ""
+
+#, fuzzy
+#~ msgid ""
+#~ "There are currently no tutorials for this class, you can [color=$color]"
+#~ "[url=$url]contribute one[/url][/color] or [color=$color][url="
+#~ "$url2]request one[/url][/color]."
+#~ msgstr ""
+#~ "এই মেথড সম্পর্কে বিস্তারিত তথ্য লিপিবদ্ধ করা হয়নি। অনুগ্রহ করে তথ্য প্রদানের "
+#~ "মাধ্যমে সহায়তা করুন। তথ্য প্রদানের জন্য [color=$color][url=$url], [/url][/"
+#~ "color] ফরম্যাট ব্যাবহার করুন !"
 
 #~ msgid "enum  "
 #~ msgstr "enum  "
