@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  room_instance.h                                                      */
+/*  GodotGestureHandler.java                                             */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,54 +28,79 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef ROOM_INSTANCE_H
-#define ROOM_INSTANCE_H
+package org.godotengine.godot.input;
 
-#include "scene/3d/visual_instance.h"
-#include "scene/resources/room.h"
+import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import org.godotengine.godot.GodotLib;
+import org.godotengine.godot.GodotView;
 
-/* RoomInstance Logic:
-   a) Instances that belong to the room are drawn only if the room is visible (seen through portal, or player inside)
-   b) Instances that don't belong to any room are considered to belong to the root room (RID empty)
-   c) "dynamic" Instances are assigned to the rooms their AABB touch
+/**
+ * Handles gesture input related events for the {@link GodotView} view.
+ * https://developer.android.com/reference/android/view/GestureDetector.SimpleOnGestureListener
+ */
+public class GodotGestureHandler extends GestureDetector.SimpleOnGestureListener {
 
-*/
+	private final GodotView godotView;
 
-// FIXME: this will be removed, left for reference
-#if 0
+	public GodotGestureHandler(GodotView godotView) {
+		this.godotView = godotView;
+	}
 
-class Room : public VisualInstance {
+	private void queueEvent(Runnable task) {
+		godotView.queueEvent(task);
+	}
 
-	GDCLASS(Room, VisualInstance);
+	@Override
+	public boolean onDown(MotionEvent event) {
+		super.onDown(event);
+		//Log.i("GodotGesture", "onDown");
+		return true;
+	}
 
-public:
-private:
-	Ref<RoomBounds> room;
+	@Override
+	public boolean onSingleTapConfirmed(MotionEvent event) {
+		super.onSingleTapConfirmed(event);
+		return true;
+	}
 
-	int level;
-	void _parse_node_faces(PoolVector<Face3> &all_faces, const Node *p_node) const;
+	@Override
+	public void onLongPress(MotionEvent event) {
+		//Log.i("GodotGesture", "onLongPress");
+	}
 
-	void _bounds_changed();
+	@Override
+	public boolean onDoubleTap(MotionEvent event) {
+		//Log.i("GodotGesture", "onDoubleTap");
+		final int x = Math.round(event.getX());
+		final int y = Math.round(event.getY());
+		queueEvent(new Runnable() {
+			@Override
+			public void run() {
+				GodotLib.doubletap(x, y);
+			}
+		});
+		return true;
+	}
 
-protected:
-	void _notification(int p_what);
+	@Override
+	public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+		//Log.i("GodotGesture", "onScroll");
+		final int x = Math.round(distanceX);
+		final int y = Math.round(distanceY);
+		queueEvent(new Runnable() {
+			@Override
+			public void run() {
+				GodotLib.scroll(x, y);
+			}
+		});
+		return true;
+	}
 
-	static void _bind_methods();
-
-public:
-	enum {
-		// used to notify portals that the room in which they are has changed.
-		NOTIFICATION_AREA_CHANGED = 60
-	};
-
-	virtual AABB get_aabb() const;
-	virtual PoolVector<Face3> get_faces(uint32_t p_usage_flags) const;
-
-	void set_room(const Ref<RoomBounds> &p_room);
-	Ref<RoomBounds> get_room() const;
-
-	Room();
-	~Room();
-};
-#endif
-#endif // ROOM_INSTANCE_H
+	@Override
+	public boolean onFling(MotionEvent event1, MotionEvent event2, float velocityX, float velocityY) {
+		//Log.i("GodotGesture", "onFling");
+		return true;
+	}
+}

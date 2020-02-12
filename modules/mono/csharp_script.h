@@ -307,6 +307,12 @@ class CSharpLanguage : public ScriptLanguage {
 
 	Map<Object *, CSharpScriptBinding> script_bindings;
 
+#ifdef DEBUG_ENABLED
+	// List of unsafe object references
+	Map<ObjectID, int> unsafe_object_references;
+	Mutex *unsafe_object_references_lock;
+#endif
+
 	struct StringNameCache {
 
 		StringName _signal_callback;
@@ -457,6 +463,9 @@ public:
 #ifdef DEBUG_ENABLED
 	Vector<StackInfo> stack_trace_get_info(MonoObject *p_stack_trace);
 #endif
+
+	void post_unsafe_reference(Object *p_obj);
+	void pre_unsafe_unreference(Object *p_obj);
 
 	CSharpLanguage();
 	~CSharpLanguage();

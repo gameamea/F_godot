@@ -75,6 +75,7 @@ public:
 		EMISSION_SHAPE_RECTANGLE,
 		EMISSION_SHAPE_POINTS,
 		EMISSION_SHAPE_DIRECTED_POINTS,
+		EMISSION_SHAPE_MAX
 	};
 
 private:
@@ -153,7 +154,6 @@ private:
 
 	Vector2 direction;
 	float spread;
-	float flatness;
 
 	float parameters[PARAM_MAX];
 	float randomness[PARAM_MAX];
@@ -241,9 +241,6 @@ public:
 
 	void set_spread(float p_spread);
 	float get_spread() const;
-
-	void set_flatness(float p_flatness);
-	float get_flatness() const;
 
 	void set_param(Parameter p_param, float p_value);
 	float get_param(Parameter p_param) const;

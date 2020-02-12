@@ -115,6 +115,7 @@ class OS_X11 : public OS_Unix {
 	// IME
 	bool im_active;
 	Vector2 im_position;
+	Vector2 last_position_before_fs;
 
 	Size2 min_size;
 	Size2 max_size;
@@ -195,6 +196,7 @@ class OS_X11 : public OS_Unix {
 
 	int video_driver_index;
 	bool maximized;
+	bool window_focused;
 	//void set_wm_border(bool p_enabled);
 	void set_wm_fullscreen(bool p_enabled);
 	void set_wm_above(bool p_enabled);
@@ -284,6 +286,7 @@ public:
 	virtual bool is_window_maximized() const;
 	virtual void set_window_always_on_top(bool p_enabled);
 	virtual bool is_window_always_on_top() const;
+	virtual bool is_window_focused() const;
 	virtual void request_attention();
 
 	virtual void set_borderless_window(bool p_borderless);

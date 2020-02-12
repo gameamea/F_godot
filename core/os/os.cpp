@@ -221,7 +221,7 @@ bool OS::has_virtual_keyboard() const {
 	return false;
 }
 
-void OS::show_virtual_keyboard(const String &p_existing_text, const Rect2 &p_screen_rect) {
+void OS::show_virtual_keyboard(const String &p_existing_text, const Rect2 &p_screen_rect, int p_max_input_length) {
 }
 
 void OS::hide_virtual_keyboard() {
@@ -342,6 +342,12 @@ String OS::get_cache_path() const {
 
 	return ".";
 }
+
+// Path to macOS .app bundle resources
+String OS::get_bundle_resource_dir() const {
+
+	return ".";
+};
 
 // OS specific path for user://
 String OS::get_user_data_dir() const {

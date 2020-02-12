@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  portal.h                                                             */
+/*  api.h                                                                */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,61 +28,5 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef PORTAL_H
-#define PORTAL_H
-
-#include "scene/3d/visual_instance.h"
-
-/* Portal Logic:
-   If a portal is placed next (very close to) a similar, opposing portal, they automatically connect,
-   otherwise, a portal connects to the parent room
-*/
-// FIXME: This will be redone and replaced by area portals, left for reference
-// since a new class with this name will have to exist and want to reuse the gizmos
-#if 0
-class Portal : public VisualInstance {
-
-	GDCLASS(Portal, VisualInstance);
-
-	RID portal;
-	Vector<Point2> shape;
-
-	bool enabled;
-	float disable_distance;
-	Color disabled_color;
-	float connect_range;
-
-	AABB aabb;
-
-protected:
-	bool _set(const StringName &p_name, const Variant &p_value);
-	bool _get(const StringName &p_name, Variant &r_ret) const;
-	void _get_property_list(List<PropertyInfo> *p_list) const;
-
-	static void _bind_methods();
-
-public:
-	virtual AABB get_aabb() const;
-	virtual PoolVector<Face3> get_faces(uint32_t p_usage_flags) const;
-
-	void set_enabled(bool p_enabled);
-	bool is_enabled() const;
-
-	void set_disable_distance(float p_distance);
-	float get_disable_distance() const;
-
-	void set_disabled_color(const Color &p_disabled_color);
-	Color get_disabled_color() const;
-
-	void set_shape(const Vector<Point2> &p_shape);
-	Vector<Point2> get_shape() const;
-
-	void set_connect_range(float p_range);
-	float get_connect_range() const;
-
-	Portal();
-	~Portal();
-};
-
-#endif
-#endif
+void register_android_api();
+void unregister_android_api();

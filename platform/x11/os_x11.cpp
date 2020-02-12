@@ -1429,11 +1429,15 @@ void OS_X11::set_window_fullscreen(bool p_enabled) {
 		set_window_maximized(true);
 	}
 	set_wm_fullscreen(p_enabled);
-	if (!p_enabled && !current_videomode.always_on_top) {
+	if (!p_enabled && current_videomode.always_on_top) {
 		// Restore
 		set_window_maximized(false);
 	}
-
+	if (!p_enabled) {
+		set_window_position(last_position_before_fs);
+	} else {
+		last_position_before_fs = get_window_position();
+	}
 	current_videomode.fullscreen = p_enabled;
 }
 
@@ -1682,6 +1686,10 @@ void OS_X11::set_window_always_on_top(bool p_enabled) {
 
 bool OS_X11::is_window_always_on_top() const {
 	return current_videomode.always_on_top;
+}
+
+bool OS_X11::is_window_focused() const {
+	return window_focused;
 }
 
 void OS_X11::set_borderless_window(bool p_borderless) {
@@ -1996,11 +2004,6 @@ void OS_X11::handle_key_event(XKeyEvent *p_event, bool p_echo) {
 		if (last_is_pressed) {
 			k->set_echo(true);
 		}
-	} else {
-		//ignore
-		if (!last_is_pressed) {
-			return;
-		}
 	}
 
 	//printf("key: %x\n",k->get_scancode());
@@ -2276,6 +2279,8 @@ void OS_X11::process_xevents() {
 				minimized = false;
 				window_has_focus = true;
 				main_loop->notification(MainLoop::NOTIFICATION_WM_FOCUS_IN);
+				window_focused = true;
+
 				if (mouse_mode_grab) {
 					// Show and update the cursor if confined and the window regained focus.
 					if (mouse_mode == MOUSE_MODE_CONFINED)
@@ -2303,6 +2308,7 @@ void OS_X11::process_xevents() {
 				window_has_focus = false;
 				input->release_pressed_events();
 				main_loop->notification(MainLoop::NOTIFICATION_WM_FOCUS_OUT);
+				window_focused = false;
 
 				if (mouse_mode_grab) {
 					//dear X11, I try, I really try, but you never work, you do whathever you want.
@@ -3497,6 +3503,8 @@ OS_X11::OS_X11() {
 	xi.last_relative_time = 0;
 	layered_window = false;
 	minimized = false;
+	window_focused = true;
 	xim_style = 0L;
 	mouse_mode = MOUSE_MODE_VISIBLE;
+	last_position_before_fs = Vector2();
 }

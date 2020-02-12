@@ -115,6 +115,20 @@ static Vector2 get_mouse_pos(NSPoint locationInWindow, CGFloat backingScaleFacto
 	return Vector2(mouse_x, mouse_y);
 }
 
+static NSCursor *cursorFromSelector(SEL selector, SEL fallback = nil) {
+	if ([NSCursor respondsToSelector:selector]) {
+		id object = [NSCursor performSelector:selector];
+		if ([object isKindOfClass:[NSCursor class]]) {
+			return object;
+		}
+	}
+	if (fallback) {
+		// Fallback should be a reasonable default, no need to check.
+		return [NSCursor performSelector:fallback];
+	}
+	return [NSCursor arrowCursor];
+}
+
 @interface GodotApplication : NSApplication
 @end
 
@@ -393,9 +407,6 @@ static Vector2 get_mouse_pos(NSPoint locationInWindow, CGFloat backingScaleFacto
 }
 
 - (void)windowDidBecomeKey:(NSNotification *)notification {
-	//_GodotInputWindowFocus(window, GL_TRUE);
-	//_GodotPlatformSetCursorMode(window, window->cursorMode);
-
 	if (OS_OSX::singleton->get_main_loop()) {
 		get_mouse_pos(
 				[OS_OSX::singleton->window_object mouseLocationOutsideOfEventStream],
@@ -404,25 +415,31 @@ static Vector2 get_mouse_pos(NSPoint locationInWindow, CGFloat backingScaleFacto
 
 		OS_OSX::singleton->get_main_loop()->notification(MainLoop::NOTIFICATION_WM_FOCUS_IN);
 	}
+
+	OS_OSX::singleton->window_focused = true;
 }
 
 - (void)windowDidResignKey:(NSNotification *)notification {
-	//_GodotInputWindowFocus(window, GL_FALSE);
-	//_GodotPlatformSetCursorMode(window, Godot_CURSOR_NORMAL);
 	if (OS_OSX::singleton->get_main_loop())
 		OS_OSX::singleton->get_main_loop()->notification(MainLoop::NOTIFICATION_WM_FOCUS_OUT);
+
+	OS_OSX::singleton->window_focused = false;
 }
 
 - (void)windowDidMiniaturize:(NSNotification *)notification {
 	OS_OSX::singleton->wm_minimized(true);
 	if (OS_OSX::singleton->get_main_loop())
 		OS_OSX::singleton->get_main_loop()->notification(MainLoop::NOTIFICATION_WM_FOCUS_OUT);
+
+	OS_OSX::singleton->window_focused = false;
 };
 
 - (void)windowDidDeminiaturize:(NSNotification *)notification {
 	OS_OSX::singleton->wm_minimized(false);
 	if (OS_OSX::singleton->get_main_loop())
 		OS_OSX::singleton->get_main_loop()->notification(MainLoop::NOTIFICATION_WM_FOCUS_IN);
+
+	OS_OSX::singleton->window_focused = true;
 };
 
 @end
@@ -476,7 +493,7 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 }
 
 - (NSRange)markedRange {
-	return (markedText.length > 0) ? NSMakeRange(0, markedText.length - 1) : kEmptyRange;
+	return NSMakeRange(0, markedText.length);
 }
 
 - (NSRange)selectedRange {
@@ -488,6 +505,10 @@ static const NSRange kEmptyRange = { NSNotFound, 0 };
 		[markedText initWithAttributedString:aString];
 	} else {
 		[markedText initWithString:aString];
+	}
+	if (markedText.length == 0) {
+		[self unmarkText];
+		return;
 	}
 	if (OS_OSX::singleton->im_active) {
 		imeInputEventInProgress = true;
@@ -1806,15 +1827,15 @@ void OS_OSX::set_cursor_shape(CursorShape p_shape) {
 			case CURSOR_BUSY: [[NSCursor arrowCursor] set]; break;
 			case CURSOR_DRAG: [[NSCursor closedHandCursor] set]; break;
 			case CURSOR_CAN_DROP: [[NSCursor openHandCursor] set]; break;
-			case CURSOR_FORBIDDEN: [[NSCursor arrowCursor] set]; break;
-			case CURSOR_VSIZE: [[NSCursor resizeUpDownCursor] set]; break;
-			case CURSOR_HSIZE: [[NSCursor resizeLeftRightCursor] set]; break;
-			case CURSOR_BDIAGSIZE: [[NSCursor arrowCursor] set]; break;
-			case CURSOR_FDIAGSIZE: [[NSCursor arrowCursor] set]; break;
+			case CURSOR_FORBIDDEN: [[NSCursor operationNotAllowedCursor] set]; break;
+			case CURSOR_VSIZE: [cursorFromSelector(@selector(_windowResizeNorthSouthCursor), @selector(resizeUpDownCursor)) set]; break;
+			case CURSOR_HSIZE: [cursorFromSelector(@selector(_windowResizeEastWestCursor), @selector(resizeLeftRightCursor)) set]; break;
+			case CURSOR_BDIAGSIZE: [cursorFromSelector(@selector(_windowResizeNorthEastSouthWestCursor)) set]; break;
+			case CURSOR_FDIAGSIZE: [cursorFromSelector(@selector(_windowResizeNorthWestSouthEastCursor)) set]; break;
 			case CURSOR_MOVE: [[NSCursor arrowCursor] set]; break;
 			case CURSOR_VSPLIT: [[NSCursor resizeUpDownCursor] set]; break;
 			case CURSOR_HSPLIT: [[NSCursor resizeLeftRightCursor] set]; break;
-			case CURSOR_HELP: [[NSCursor arrowCursor] set]; break;
+			case CURSOR_HELP: [cursorFromSelector(@selector(_helpCursor)) set]; break;
 			default: {
 			};
 		}
@@ -2106,6 +2127,19 @@ String OS_OSX::get_cache_path() const {
 	} else {
 		return get_config_path();
 	}
+}
+
+String OS_OSX::get_bundle_resource_dir() const {
+
+	NSBundle *main = [NSBundle mainBundle];
+	NSString *resourcePath = [main resourcePath];
+
+	char *utfs = strdup([resourcePath UTF8String]);
+	String ret;
+	ret.parse_utf8(utfs);
+	free(utfs);
+
+	return ret;
 }
 
 // Get properly capitalized engine name for system paths
@@ -2607,6 +2641,10 @@ bool OS_OSX::is_window_always_on_top() const {
 	return [window_object level] == NSFloatingWindowLevel;
 }
 
+bool OS_OSX::is_window_focused() const {
+	return window_focused;
+}
+
 void OS_OSX::request_attention() {
 
 	[NSApp requestUserAttention:NSCriticalRequest];
@@ -3059,6 +3097,7 @@ OS_OSX::OS_OSX() {
 	window_size = Vector2(1024, 600);
 	zoomed = false;
 	resizable = false;
+	window_focused = true;
 
 	Vector<Logger *> loggers;
 	loggers.push_back(memnew(OSXTerminalLogger));

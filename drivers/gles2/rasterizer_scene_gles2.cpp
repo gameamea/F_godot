@@ -557,15 +557,16 @@ bool RasterizerSceneGLES2::reflection_probe_instance_begin_render(RID p_instance
 
 		glGenTextures(1, &rpi->cubemap);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, rpi->cubemap);
-#if 1
-		//Mobile hardware (PowerVR specially) prefers this approach, the other one kills the game
+
+		// Mobile hardware (PowerVR specially) prefers this approach,
+		// the previous approach with manual lod levels kills the game.
 		for (int i = 0; i < 6; i++) {
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internal_format, size, size, 0, format, type, NULL);
 		}
 
 		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
-		//Generate framebuffers for rendering
+		// Generate framebuffers for rendering
 		for (int i = 0; i < 6; i++) {
 			glBindFramebuffer(GL_FRAMEBUFFER, rpi->fbo[i]);
 			glBindTexture(GL_TEXTURE_2D, rpi->color[i]);
@@ -576,34 +577,6 @@ bool RasterizerSceneGLES2::reflection_probe_instance_begin_render(RID p_instance
 			ERR_CONTINUE(status != GL_FRAMEBUFFER_COMPLETE);
 		}
 
-#else
-		int lod = 0;
-
-		//the approach below is fatal for powervr
-
-		// Set the initial (empty) mipmaps, all need to be set for this to work in GLES2, even if they won't be used later.
-		while (size >= 1) {
-
-			for (int i = 0; i < 6; i++) {
-				glTexImage2D(_cube_side_enum[i], lod, internal_format, size, size, 0, format, type, NULL);
-				if (size == rpi->current_resolution) {
-					//adjust framebuffer
-					glBindFramebuffer(GL_FRAMEBUFFER, rpi->fbo[i]);
-					glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, _cube_side_enum[i], rpi->cubemap, 0);
-					glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rpi->depth);
-
-#ifdef DEBUG_ENABLED
-					GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-					ERR_CONTINUE(status != GL_FRAMEBUFFER_COMPLETE);
-#endif
-				}
-			}
-
-			lod++;
-
-			size >>= 1;
-		}
-#endif
 		glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1169,7 +1142,7 @@ void RasterizerSceneGLES2::_add_geometry_with_material(RasterizerStorageGLES2::G
 
 				LightInstance *li = light_instance_owner.getornull(e->instance->light_instances[i]);
 
-				if (li->light_index >= render_light_instance_count || render_light_instances[li->light_index] != li) {
+				if (!li || li->light_index >= render_light_instance_count || render_light_instances[li->light_index] != li) {
 					continue; // too many or light_index did not correspond to the light instances to be rendered
 				}
 
@@ -2685,14 +2658,14 @@ void RasterizerSceneGLES2::_draw_sky(RasterizerStorageGLES2::Sky *p_sky, const C
 	};
 
 	if (!asymmetrical) {
-		float vw, vh, zn;
-		camera.get_viewport_size(vw, vh);
+		Vector2 vp_he = camera.get_viewport_half_extents();
+		float zn;
 		zn = p_projection.get_z_near();
 
 		for (int i = 0; i < 4; i++) {
 			Vector3 uv = vertices[i * 2 + 1];
-			uv.x = (uv.x * 2.0 - 1.0) * vw;
-			uv.y = -(uv.y * 2.0 - 1.0) * vh;
+			uv.x = (uv.x * 2.0 - 1.0) * vp_he.x;
+			uv.y = -(uv.y * 2.0 - 1.0) * vp_he.y;
 			uv.z = -zn;
 			vertices[i * 2 + 1] = p_transform.basis.xform(uv).normalized();
 			vertices[i * 2 + 1].z = -vertices[i * 2 + 1].z;
@@ -3325,6 +3298,7 @@ void RasterizerSceneGLES2::render_scene(const Transform &p_cam_transform, const 
 	glDepthMask(GL_TRUE);
 	glClearDepth(1.0f);
 	glEnable(GL_DEPTH_TEST);
+	glClear(GL_DEPTH_BUFFER_BIT);
 
 	// clear color
 
@@ -3351,12 +3325,11 @@ void RasterizerSceneGLES2::render_scene(const Transform &p_cam_transform, const 
 
 	if (!env || env->bg_mode != VS::ENV_BG_KEEP) {
 		glClearColor(clear_color.r, clear_color.g, clear_color.b, clear_color.a);
+		glClear(GL_COLOR_BUFFER_BIT);
 	}
 
 	state.default_ambient = Color(clear_color.r, clear_color.g, clear_color.b, 1.0);
 	state.default_bg = Color(clear_color.r, clear_color.g, clear_color.b, 1.0);
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	if (storage->frame.current_rt && storage->frame.current_rt->flags[RasterizerStorage::RENDER_TARGET_DIRECT_TO_SCREEN]) {
 		glDisable(GL_SCISSOR_TEST);

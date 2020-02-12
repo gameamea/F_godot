@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  room.cpp                                                             */
+/*  api.cpp                                                              */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,43 +28,59 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "room.h"
+#include "api.h"
 
-#include "servers/visual_server.h"
+#include "core/engine.h"
+#include "java_class_wrapper.h"
 
-// FIXME: Left for reference for reimplementation using Area
-#if 0
-RID RoomBounds::get_rid() const {
+#if !defined(ANDROID_ENABLED)
+static JavaClassWrapper *java_class_wrapper = NULL;
+#endif
 
-	return area;
+void register_android_api() {
+
+#if !defined(ANDROID_ENABLED)
+	java_class_wrapper = memnew(JavaClassWrapper); // Dummy
+#endif
+
+	ClassDB::register_class<JavaClass>();
+	ClassDB::register_class<JavaClassWrapper>();
+	Engine::get_singleton()->add_singleton(Engine::Singleton("JavaClassWrapper", JavaClassWrapper::get_singleton()));
 }
 
-void RoomBounds::set_geometry_hint(const PoolVector<Face3> &p_geometry_hint) {
+void unregister_android_api() {
 
-	geometry_hint = p_geometry_hint;
+#if !defined(ANDROID_ENABLED)
+	memdelete(java_class_wrapper);
+#endif
 }
 
-PoolVector<Face3> RoomBounds::get_geometry_hint() const {
+void JavaClassWrapper::_bind_methods() {
 
-	return geometry_hint;
+	ClassDB::bind_method(D_METHOD("wrap", "name"), &JavaClassWrapper::wrap);
 }
 
-void RoomBounds::_bind_methods() {
+#if !defined(ANDROID_ENABLED)
 
-	ClassDB::bind_method(D_METHOD("set_geometry_hint", "triangles"), &RoomBounds::set_geometry_hint);
-	ClassDB::bind_method(D_METHOD("get_geometry_hint"), &RoomBounds::get_geometry_hint);
-
-	//ADD_PROPERTY( PropertyInfo( Variant::DICTIONARY, "bounds"), "set_bounds","get_bounds") ;
-	ADD_PROPERTY(PropertyInfo(Variant::POOL_VECTOR3_ARRAY, "geometry_hint"), "set_geometry_hint", "get_geometry_hint");
+Variant JavaClass::call(const StringName &, const Variant **, int, Variant::CallError &) {
+	return Variant();
 }
 
-RoomBounds::RoomBounds() {
-
-	area = VisualServer::get_singleton()->room_create();
+JavaClass::JavaClass() {
 }
 
-RoomBounds::~RoomBounds() {
-
-	VisualServer::get_singleton()->free(area);
+Variant JavaObject::call(const StringName &, const Variant **, int, Variant::CallError &) {
+	return Variant();
 }
+
+JavaClassWrapper *JavaClassWrapper::singleton = NULL;
+
+Ref<JavaClass> JavaClassWrapper::wrap(const String &) {
+	return Ref<JavaClass>();
+}
+
+JavaClassWrapper::JavaClassWrapper() {
+	singleton = this;
+}
+
 #endif

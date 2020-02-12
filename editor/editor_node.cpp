@@ -369,6 +369,19 @@ void EditorNode::_notification(int p_what) {
 
 		case NOTIFICATION_READY: {
 
+			{
+				_initializing_addons = true;
+				Vector<String> addons;
+				if (ProjectSettings::get_singleton()->has_setting("editor_plugins/enabled")) {
+					addons = ProjectSettings::get_singleton()->get("editor_plugins/enabled");
+				}
+
+				for (int i = 0; i < addons.size(); i++) {
+					set_addon_plugin_enabled(addons[i], true);
+				}
+				_initializing_addons = false;
+			}
+
 			VisualServer::get_singleton()->viewport_set_hide_scenario(get_scene_root()->get_viewport_rid(), true);
 			VisualServer::get_singleton()->viewport_set_hide_canvas(get_scene_root()->get_viewport_rid(), true);
 			VisualServer::get_singleton()->viewport_set_disable_environment(get_viewport()->get_viewport_rid(), true);
@@ -562,46 +575,65 @@ void EditorNode::_fs_changed() {
 
 	_mark_unsaved_scenes();
 
+	// FIXME: Move this to a cleaner location, it's hacky to do this is _fs_changed.
+	String export_error;
 	if (export_defer.preset != "" && !EditorFileSystem::get_singleton()->is_scanning()) {
+		String preset_name = export_defer.preset;
+		// Ensures export_project does not loop infinitely, because notifications may
+		// come during the export.
+		export_defer.preset = "";
 		Ref<EditorExportPreset> preset;
 		for (int i = 0; i < EditorExport::get_singleton()->get_export_preset_count(); ++i) {
 			preset = EditorExport::get_singleton()->get_export_preset(i);
-			if (preset->get_name() == export_defer.preset) {
+			if (preset->get_name() == preset_name) {
 				break;
 			}
 			preset.unref();
 		}
 		if (preset.is_null()) {
-			String errstr = "Unknown export preset: " + export_defer.preset;
-			ERR_PRINTS(errstr);
-			OS::get_singleton()->set_exit_code(EXIT_FAILURE);
+			export_error = vformat("Invalid export preset name: %s.", preset_name);
 		} else {
 			Ref<EditorExportPlatform> platform = preset->get_platform();
 			if (platform.is_null()) {
-				String errstr = "Preset \"" + export_defer.preset + "\" doesn't have a platform.";
-				ERR_PRINTS(errstr);
-				OS::get_singleton()->set_exit_code(EXIT_FAILURE);
+				export_error = vformat("Export preset '%s' doesn't have a matching platform.", preset_name);
 			} else {
-				// ensures export_project does not loop infinitely, because notifications may
-				// come during the export
-				export_defer.preset = "";
 				Error err = OK;
-				if (export_defer.path.ends_with(".pck") || export_defer.path.ends_with(".zip")) {
+				if (export_defer.pack_only) { // Only export .pck or .zip data pack.
 					if (export_defer.path.ends_with(".zip")) {
 						err = platform->export_zip(preset, export_defer.debug, export_defer.path);
 					} else if (export_defer.path.ends_with(".pck")) {
 						err = platform->export_pack(preset, export_defer.debug, export_defer.path);
 					}
-				} else {
-					err = platform->export_project(preset, export_defer.debug, export_defer.path);
+				} else { // Normal project export.
+					String config_error;
+					bool missing_templates;
+					if (!platform->can_export(preset, config_error, missing_templates)) {
+						ERR_PRINT(vformat("Cannot export project with preset '%s' due to configuration errors:\n%s", preset_name, config_error));
+						err = missing_templates ? ERR_FILE_NOT_FOUND : ERR_UNCONFIGURED;
+					} else {
+						err = platform->export_project(preset, export_defer.debug, export_defer.path);
+					}
 				}
-				if (err != OK) {
-					ERR_PRINTS(vformat(TTR("Project export failed with error code %d."), (int)err));
-					OS::get_singleton()->set_exit_code(EXIT_FAILURE);
+				switch (err) {
+					case OK:
+						break;
+					case ERR_FILE_NOT_FOUND:
+						export_error = vformat("Project export failed for preset '%s', the export template appears to be missing.", preset_name);
+						break;
+					case ERR_FILE_BAD_PATH:
+						export_error = vformat("Project export failed for preset '%s', the target path '%s' appears to be invalid.", preset_name, export_defer.path);
+						break;
+					default:
+						export_error = vformat("Project export failed with error code %d for preset '%s'.", (int)err, preset_name);
+						break;
 				}
 			}
 		}
 
+		if (!export_error.empty()) {
+			ERR_PRINT(export_error);
+			OS::get_singleton()->set_exit_code(EXIT_FAILURE);
+		}
 		_exit_editor();
 	}
 }
@@ -641,12 +673,14 @@ void EditorNode::_sources_changed(bool p_exist) {
 	if (waiting_for_first_scan) {
 		waiting_for_first_scan = false;
 
-		EditorResourcePreview::get_singleton()->start(); //start previes now that it's safe
+		// Start preview thread now that it's safe.
+		if (!singleton->cmdline_export_mode) {
+			EditorResourcePreview::get_singleton()->start();
+		}
 
 		_load_docks();
 
 		if (defer_load_scene != "") {
-
 			load_scene(defer_load_scene);
 			defer_load_scene = "";
 		}
@@ -1136,7 +1170,10 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 
 	save.step(TTR("Saving Scene"), 4);
 	_save_scene(p_file, p_idx);
-	EditorResourcePreview::get_singleton()->check_for_invalidation(p_file);
+
+	if (!singleton->cmdline_export_mode) {
+		EditorResourcePreview::get_singleton()->check_for_invalidation(p_file);
+	}
 }
 
 bool EditorNode::_validate_scene_recursive(const String &p_filename, Node *p_node) {
@@ -1728,6 +1765,8 @@ void EditorNode::_edit_current() {
 		return;
 	}
 
+	Object *prev_inspected_object = get_inspector()->get_edited_object();
+
 	bool capitalize = bool(EDITOR_GET("interface/inspector/capitalize_properties"));
 	bool disable_folding = bool(EDITOR_GET("interface/inspector/disable_folding"));
 	bool is_resource = current_obj->is_class("Resource");
@@ -1817,6 +1856,11 @@ void EditorNode::_edit_current() {
 		node_dock->set_node(NULL);
 		scene_tree_dock->set_selected(selected_node);
 		inspector_dock->update(NULL);
+	}
+
+	if (current_obj == prev_inspected_object) {
+		// Make sure inspected properties are restored.
+		get_inspector()->update_tree();
 	}
 
 	inspector_dock->set_warning(editable_warning);
@@ -3820,7 +3864,7 @@ Ref<Texture> EditorNode::get_class_icon(const String &p_class, const String &p_f
 
 void EditorNode::progress_add_task(const String &p_task, const String &p_label, int p_steps, bool p_can_cancel) {
 
-	if (singleton->disable_progress_dialog) {
+	if (singleton->cmdline_export_mode) {
 		print_line(p_task + ": begin: " + p_label + " steps: " + itos(p_steps));
 	} else {
 		singleton->progress_dialog->add_task(p_task, p_label, p_steps, p_can_cancel);
@@ -3829,7 +3873,7 @@ void EditorNode::progress_add_task(const String &p_task, const String &p_label, 
 
 bool EditorNode::progress_task_step(const String &p_task, const String &p_state, int p_step, bool p_force_refresh) {
 
-	if (singleton->disable_progress_dialog) {
+	if (singleton->cmdline_export_mode) {
 		print_line("\t" + p_task + ": step " + itos(p_step) + ": " + p_state);
 		return false;
 	} else {
@@ -3840,7 +3884,7 @@ bool EditorNode::progress_task_step(const String &p_task, const String &p_state,
 
 void EditorNode::progress_end_task(const String &p_task) {
 
-	if (singleton->disable_progress_dialog) {
+	if (singleton->cmdline_export_mode) {
 		print_line(p_task + ": end");
 	} else {
 		singleton->progress_dialog->end_task(p_task);
@@ -3920,13 +3964,13 @@ void EditorNode::_editor_file_dialog_unregister(EditorFileDialog *p_dialog) {
 
 Vector<EditorNodeInitCallback> EditorNode::_init_callbacks;
 
-Error EditorNode::export_preset(const String &p_preset, const String &p_path, bool p_debug, const String &p_password, bool p_quit_after) {
+Error EditorNode::export_preset(const String &p_preset, const String &p_path, bool p_debug, bool p_pack_only) {
 
 	export_defer.preset = p_preset;
 	export_defer.path = p_path;
 	export_defer.debug = p_debug;
-	export_defer.password = p_password;
-	disable_progress_dialog = true;
+	export_defer.pack_only = p_pack_only;
+	cmdline_export_mode = true;
 	return OK;
 }
 
@@ -5060,6 +5104,7 @@ void EditorNode::_global_menu_action(const Variant &p_id, const Variant &p_meta)
 	if (id == GLOBAL_NEW_WINDOW) {
 		if (OS::get_singleton()->get_main_loop()) {
 			List<String> args;
+			args.push_back("-e");
 			String exec = OS::get_singleton()->get_executable_path();
 
 			OS::ProcessID pid = 0;
@@ -5567,7 +5612,7 @@ EditorNode::EditorNode() {
 	_initializing_addons = false;
 	docks_visible = true;
 	restoring_scenes = false;
-	disable_progress_dialog = false;
+	cmdline_export_mode = false;
 	scene_distraction = false;
 	script_distraction = false;
 
@@ -6531,12 +6576,6 @@ EditorNode::EditorNode() {
 	gui_base->add_child(file);
 	file->set_current_dir("res://");
 
-	file_export = memnew(EditorFileDialog);
-	file_export->set_access(EditorFileDialog::ACCESS_FILESYSTEM);
-	gui_base->add_child(file_export);
-	file_export->set_title(TTR("Export Project"));
-	file_export->connect("file_selected", this, "_dialog_action");
-
 	file_export_lib = memnew(EditorFileDialog);
 	file_export_lib->set_title(TTR("Export Library"));
 	file_export_lib->set_mode(EditorFileDialog::MODE_SAVE_FILE);
@@ -6546,11 +6585,6 @@ EditorNode::EditorNode() {
 	file_export_lib_merge->set_pressed(true);
 	file_export_lib->get_vbox()->add_child(file_export_lib_merge);
 	gui_base->add_child(file_export_lib);
-
-	file_export_password = memnew(LineEdit);
-	file_export_password->set_secret(true);
-	file_export_password->set_editable(false);
-	file_export->get_vbox()->add_margin_child(TTR("Password:"), file_export_password);
 
 	file_script = memnew(EditorFileDialog);
 	file_script->set_title(TTR("Open & Run a Script"));
@@ -6766,19 +6800,6 @@ EditorNode::EditorNode() {
 	_update_scene_tabs();
 
 	import_dock->initialize_import_options();
-
-	{
-		_initializing_addons = true;
-		Vector<String> addons;
-		if (ProjectSettings::get_singleton()->has_setting("editor_plugins/enabled")) {
-			addons = ProjectSettings::get_singleton()->get("editor_plugins/enabled");
-		}
-
-		for (int i = 0; i < addons.size(); i++) {
-			set_addon_plugin_enabled(addons[i], true);
-		}
-		_initializing_addons = false;
-	}
 
 	FileAccess::set_file_close_fail_notify_callback(_file_access_close_error_notify);
 

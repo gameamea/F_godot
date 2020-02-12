@@ -792,7 +792,7 @@ String VisualShaderNodeCubeMap::generate_global(Shader::Mode p_mode, VisualShade
 			case TYPE_COLOR: u += " : hint_albedo"; break;
 			case TYPE_NORMALMAP: u += " : hint_normal"; break;
 		}
-		return u + ";";
+		return u + ";\n";
 	}
 	return String();
 }
@@ -809,29 +809,33 @@ String VisualShaderNodeCubeMap::generate_code(Shader::Mode p_mode, VisualShader:
 		return String();
 	}
 
+	code += "\t{\n";
+
 	if (id == String()) {
-		code += "\tvec4 " + id + "_read = vec4(0.0);\n";
-		code += "\t" + p_output_vars[0] + " = " + id + "_read.rgb;\n";
-		code += "\t" + p_output_vars[1] + " = " + id + "_read.a;\n";
+		code += "\t\tvec4 " + id + "_read = vec4(0.0);\n";
+		code += "\t\t" + p_output_vars[0] + " = " + id + "_read.rgb;\n";
+		code += "\t\t" + p_output_vars[1] + " = " + id + "_read.a;\n";
+		code += "\t}\n";
 		return code;
 	}
 
 	if (p_input_vars[0] == String()) { // Use UV by default.
 
 		if (p_input_vars[1] == String()) {
-			code += "\tvec4 " + id + "_read = texture( " + id + " , vec3( UV, 0.0 ) );\n";
+			code += "\t\tvec4 " + id + "_read = texture( " + id + " , vec3( UV, 0.0 ) );\n";
 		} else {
-			code += "\tvec4 " + id + "_read = textureLod( " + id + " , vec3( UV, 0.0 )" + " , " + p_input_vars[1] + " );\n";
+			code += "\t\tvec4 " + id + "_read = textureLod( " + id + " , vec3( UV, 0.0 )" + " , " + p_input_vars[1] + " );\n";
 		}
 
 	} else if (p_input_vars[1] == String()) {
 		//no lod
-		code += "\tvec4 " + id + "_read = texture( " + id + " , " + p_input_vars[0] + " );\n";
+		code += "\t\tvec4 " + id + "_read = texture( " + id + " , " + p_input_vars[0] + " );\n";
 	} else {
-		code += "\tvec4 " + id + "_read = textureLod( " + id + " , " + p_input_vars[0] + " , " + p_input_vars[1] + " );\n";
+		code += "\t\tvec4 " + id + "_read = textureLod( " + id + " , " + p_input_vars[0] + " , " + p_input_vars[1] + " );\n";
 	}
-	code += "\t" + p_output_vars[0] + " = " + id + "_read.rgb;\n";
-	code += "\t" + p_output_vars[1] + " = " + id + "_read.a;\n";
+	code += "\t\t" + p_output_vars[0] + " = " + id + "_read.rgb;\n";
+	code += "\t\t" + p_output_vars[1] + " = " + id + "_read.a;\n";
+	code += "\t}\n";
 
 	return code;
 }
@@ -3685,12 +3689,33 @@ String VisualShaderNodeFresnel::get_output_port_name(int p_port) const {
 }
 
 String VisualShaderNodeFresnel::generate_code(Shader::Mode p_mode, VisualShader::Type p_type, int p_id, const String *p_input_vars, const String *p_output_vars, bool p_for_preview) const {
-	return "\t" + p_output_vars[0] + " = " + p_input_vars[2] + " ? (pow(clamp(dot(" + p_input_vars[0] + ", " + p_input_vars[1] + "), 0.0, 1.0), " + p_input_vars[3] + ")) : (pow(1.0 - clamp(dot(" + p_input_vars[0] + ", " + p_input_vars[1] + "), 0.0, 1.0), " + p_input_vars[3] + "));";
+
+	String normal;
+	String view;
+	if (p_input_vars[0] == String()) {
+		normal = "NORMAL";
+	} else {
+		normal = p_input_vars[0];
+	}
+	if (p_input_vars[1] == String()) {
+		view = "VIEW";
+	} else {
+		view = p_input_vars[1];
+	}
+
+	return "\t" + p_output_vars[0] + " = " + p_input_vars[2] + " ? (pow(clamp(dot(" + normal + ", " + view + "), 0.0, 1.0), " + p_input_vars[3] + ")) : (pow(1.0 - clamp(dot(" + normal + ", " + view + "), 0.0, 1.0), " + p_input_vars[3] + "));";
+}
+
+String VisualShaderNodeFresnel::get_input_port_default_hint(int p_port) const {
+	if (p_port == 0) {
+		return "default";
+	} else if (p_port == 1) {
+		return "default";
+	}
+	return "";
 }
 
 VisualShaderNodeFresnel::VisualShaderNodeFresnel() {
-	set_input_port_default_value(0, Vector3(0.0, 0.0, 0.0));
-	set_input_port_default_value(1, Vector3(0.0, 0.0, 0.0));
 	set_input_port_default_value(2, false);
 	set_input_port_default_value(3, 1.0);
 }
@@ -3908,7 +3933,7 @@ String VisualShaderNodeCompare::generate_code(Shader::Mode p_mode, VisualShader:
 	return code;
 }
 
-void VisualShaderNodeCompare::set_comparsion_type(ComparsionType p_type) {
+void VisualShaderNodeCompare::set_comparison_type(ComparisonType p_type) {
 
 	ctype = p_type;
 
@@ -3933,7 +3958,7 @@ void VisualShaderNodeCompare::set_comparsion_type(ComparsionType p_type) {
 	emit_changed();
 }
 
-VisualShaderNodeCompare::ComparsionType VisualShaderNodeCompare::get_comparsion_type() const {
+VisualShaderNodeCompare::ComparisonType VisualShaderNodeCompare::get_comparison_type() const {
 
 	return ctype;
 }
@@ -3971,8 +3996,8 @@ Vector<StringName> VisualShaderNodeCompare::get_editable_properties() const {
 
 void VisualShaderNodeCompare::_bind_methods() {
 
-	ClassDB::bind_method(D_METHOD("set_comparsion_type", "type"), &VisualShaderNodeCompare::set_comparsion_type);
-	ClassDB::bind_method(D_METHOD("get_comparsion_type"), &VisualShaderNodeCompare::get_comparsion_type);
+	ClassDB::bind_method(D_METHOD("set_comparison_type", "type"), &VisualShaderNodeCompare::set_comparison_type);
+	ClassDB::bind_method(D_METHOD("get_comparison_type"), &VisualShaderNodeCompare::get_comparison_type);
 
 	ClassDB::bind_method(D_METHOD("set_function", "func"), &VisualShaderNodeCompare::set_function);
 	ClassDB::bind_method(D_METHOD("get_function"), &VisualShaderNodeCompare::get_function);
@@ -3980,7 +4005,7 @@ void VisualShaderNodeCompare::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_condition", "condition"), &VisualShaderNodeCompare::set_condition);
 	ClassDB::bind_method(D_METHOD("get_condition"), &VisualShaderNodeCompare::get_condition);
 
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "type", PROPERTY_HINT_ENUM, "Scalar,Vector,Boolean,Transform"), "set_comparsion_type", "get_comparsion_type");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "type", PROPERTY_HINT_ENUM, "Scalar,Vector,Boolean,Transform"), "set_comparison_type", "get_comparison_type");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "function", PROPERTY_HINT_ENUM, "a == b,a != b,a > b,a >= b,a < b,a <= b"), "set_function", "get_function");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "condition", PROPERTY_HINT_ENUM, "All,Any"), "set_condition", "get_condition");
 
