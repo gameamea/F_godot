@@ -176,7 +176,6 @@ class VisualShaderNode : public Resource {
 	Map<int, Variant> default_input_values;
 
 protected:
-	bool simple_decl;
 	static void _bind_methods();
 
 public:
@@ -188,8 +187,6 @@ public:
 		PORT_TYPE_SAMPLER,
 		PORT_TYPE_MAX,
 	};
-
-	bool is_simple_decl() const;
 
 	virtual String get_caption() const = 0;
 

@@ -109,13 +109,9 @@ RenameDialog::RenameDialog(SceneTreeEditor *p_scene_tree_editor, UndoRedo *p_und
 
 	const int feature_min_height = 160 * EDSCALE;
 
-	cbut_regex = memnew(CheckButton);
-	cbut_regex->set_text(TTR("Use Regular Expressions"));
-	vbc->add_child(cbut_regex);
-
-	CheckButton *cbut_collapse_features = memnew(CheckButton);
-	cbut_collapse_features->set_text(TTR("Advanced Options"));
-	vbc->add_child(cbut_collapse_features);
+	CheckButton *chk_collapse_features = memnew(CheckButton);
+	chk_collapse_features->set_text(TTR("Advanced Options"));
+	vbc->add_child(chk_collapse_features);
 
 	tabc_features = memnew(TabContainer);
 	tabc_features->set_tab_align(TabContainer::ALIGN_LEFT);
@@ -199,7 +195,7 @@ RenameDialog::RenameDialog(SceneTreeEditor *p_scene_tree_editor, UndoRedo *p_und
 	grd_substitute->add_child(but_insert_count);
 
 	chk_per_level_counter = memnew(CheckBox);
-	chk_per_level_counter->set_text(TTR("Per-level Counter"));
+	chk_per_level_counter->set_text(TTR("Per Level counter"));
 	chk_per_level_counter->set_tooltip(TTR("If set the counter restarts for each group of child nodes"));
 	vbc_substitute->add_child(chk_per_level_counter);
 
@@ -237,6 +233,18 @@ RenameDialog::RenameDialog(SceneTreeEditor *p_scene_tree_editor, UndoRedo *p_und
 	spn_count_padding->set_step(1);
 	hbc_count_options->add_child(spn_count_padding);
 
+	// ---- Tab RegEx
+
+	VBoxContainer *vbc_regex = memnew(VBoxContainer);
+	vbc_regex->set_h_size_flags(SIZE_EXPAND_FILL);
+	vbc_regex->set_name(TTR("Regular Expressions"));
+	vbc_regex->set_custom_minimum_size(Size2(0, feature_min_height));
+	tabc_features->add_child(vbc_regex);
+
+	cbut_regex = memnew(CheckBox);
+	cbut_regex->set_text(TTR("Regular Expressions"));
+	vbc_regex->add_child(cbut_regex);
+
 	// ---- Tab Process
 
 	VBoxContainer *vbc_process = memnew(VBoxContainer);
@@ -260,8 +268,8 @@ RenameDialog::RenameDialog(SceneTreeEditor *p_scene_tree_editor, UndoRedo *p_und
 
 	opt_style = memnew(OptionButton);
 	opt_style->add_item(TTR("Keep"));
-	opt_style->add_item(TTR("PascalCase to snake_case"));
-	opt_style->add_item(TTR("snake_case to PascalCase"));
+	opt_style->add_item(TTR("CamelCase to under_scored"));
+	opt_style->add_item(TTR("under_scored to CamelCase"));
 	hbc_style->add_child(opt_style);
 
 	// ------ Case
@@ -291,7 +299,7 @@ RenameDialog::RenameDialog(SceneTreeEditor *p_scene_tree_editor, UndoRedo *p_und
 
 	lbl_preview = memnew(Label);
 	lbl_preview->set_text("");
-	lbl_preview->add_color_override("font_color", EditorNode::get_singleton()->get_gui_base()->get_color("error_color", "Editor"));
+	lbl_preview->add_color_override("font_color", Color(1, 0.5f, 0, 1));
 	vbc->add_child(lbl_preview);
 
 	// ---- Dialog related
@@ -306,7 +314,7 @@ RenameDialog::RenameDialog(SceneTreeEditor *p_scene_tree_editor, UndoRedo *p_und
 
 	// ---- Connections
 
-	cbut_collapse_features->connect("toggled", this, "_features_toggled");
+	chk_collapse_features->connect("toggled", this, "_features_toggled");
 
 	// Substitite Buttons
 
@@ -406,12 +414,9 @@ void RenameDialog::_update_preview(String new_text) {
 		lbl_preview->set_text(new_name);
 
 		if (new_name == preview_node->get_name()) {
-			// New name is identical to the old one. Don't color it as much to avoid distracting the user.
-			const Color accent_color = EditorNode::get_singleton()->get_gui_base()->get_color("accent_color", "Editor");
-			const Color text_color = EditorNode::get_singleton()->get_gui_base()->get_color("default_color", "RichTextLabel");
-			lbl_preview->add_color_override("font_color", accent_color.linear_interpolate(text_color, 0.5));
+			lbl_preview->add_color_override("font_color", Color(0, 0.5f, 0.25f, 1));
 		} else {
-			lbl_preview->add_color_override("font_color", EditorNode::get_singleton()->get_gui_base()->get_color("success_color", "Editor"));
+			lbl_preview->add_color_override("font_color", Color(0, 1, 0.5f, 1));
 		}
 	}
 
@@ -496,9 +501,9 @@ void RenameDialog::_error_handler(void *p_self, const char *p_func, const char *
 	}
 
 	self->has_errors = true;
-	self->lbl_preview_title->set_text(TTR("Regular Expression Error"));
-	self->lbl_preview->add_color_override("font_color", EditorNode::get_singleton()->get_gui_base()->get_color("error_color", "Editor"));
-	self->lbl_preview->set_text(vformat(TTR("At character %s"), err_str));
+	self->lbl_preview_title->set_text(TTR("Error"));
+	self->lbl_preview->add_color_override("font_color", Color(1, 0.25f, 0, 1));
+	self->lbl_preview->set_text(err_str);
 }
 
 String RenameDialog::_regex(const String &pattern, const String &subject, const String &replacement) {
@@ -515,18 +520,18 @@ String RenameDialog::_postprocess(const String &subject) {
 	String result = subject;
 
 	if (style_id == 1) {
-		// PascalCase to snake_case
 
+		// CamelCase to Under_Line
 		result = result.camelcase_to_underscore(true);
 		result = _regex("_+", result, "_");
 
 	} else if (style_id == 2) {
-		// snake_case to PascalCase
 
+		// Under_Line to CamelCase
 		RegEx pattern("_+(.?)");
 		Array matches = pattern.search_all(result);
 
-		// The name `_` would become empty; ignore it.
+		// _ name would become empty. Ignore
 		if (matches.size() && result != "_") {
 			String buffer;
 			int start = 0;

@@ -87,7 +87,7 @@ public:
 	void set_tab_align(TabAlign p_align);
 	TabAlign get_tab_align() const;
 
-	void set_tabs_visible(bool p_visible);
+	void set_tabs_visible(bool p_visibe);
 	bool are_tabs_visible() const;
 
 	void set_tab_title(int p_tab, const String &p_title);
