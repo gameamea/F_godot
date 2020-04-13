@@ -553,9 +553,11 @@ void DocData::generate(bool p_basic_types) {
 				argument_doc_from_arginfo(ad, mi.arguments[j]);
 				ad.name = arginfo.name;
 
-				int defarg = mi.default_arguments.size() - mi.arguments.size() + j;
-				if (defarg >= 0)
-					ad.default_value = mi.default_arguments[defarg];
+				int darg_idx = mi.default_arguments.size() - mi.arguments.size() + j;
+				if (darg_idx >= 0) {
+					Variant default_arg = mi.default_arguments[darg_idx];
+					ad.default_value = default_arg.get_construct_string();
+				}
 
 				method.arguments.push_back(ad);
 			}
@@ -671,7 +673,6 @@ void DocData::generate(bool p_basic_types) {
 					argument_doc_from_arginfo(ad, mi.arguments[j]);
 
 					int darg_idx = j - (mi.arguments.size() - mi.default_arguments.size());
-
 					if (darg_idx >= 0) {
 						Variant default_arg = E->get().default_arguments[darg_idx];
 						ad.default_value = default_arg.get_construct_string();
@@ -1030,7 +1031,7 @@ Error DocData::save_classes(const String &p_default_path, const Map<String, Stri
 		String header = "<class name=\"" + c.name + "\"";
 		if (c.inherits != "")
 			header += " inherits=\"" + c.inherits + "\"";
-		header += String(" version=\"") + VERSION_NUMBER + "\"";
+		header += String(" version=\"") + VERSION_BRANCH + "\"";
 		header += ">";
 		_write_string(f, 0, header);
 

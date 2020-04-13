@@ -49,7 +49,7 @@ public:
 			values[p_name] = p_value;
 			if (checking) {
 				checked.insert(p_name);
-				_change_notify(String(p_name).utf8().get_data());
+				_change_notify();
 			}
 			return true;
 		}
@@ -107,6 +107,9 @@ void ImportDock::set_edit_path(const String &p_path) {
 		return;
 	}
 
+	params->paths.clear();
+	params->paths.push_back(p_path);
+
 	_update_options(config);
 
 	List<Ref<ResourceImporter> > importers;
@@ -129,8 +132,6 @@ void ImportDock::set_edit_path(const String &p_path) {
 		}
 	}
 
-	params->paths.clear();
-	params->paths.push_back(p_path);
 	import->set_disabled(false);
 	import_as->set_disabled(false);
 	preset->set_disabled(false);
@@ -145,7 +146,7 @@ void ImportDock::_update_options(const Ref<ConfigFile> &p_config) {
 
 	params->properties.clear();
 	params->values.clear();
-	params->checking = false;
+	params->checking = params->paths.size() > 1;
 	params->checked.clear();
 
 	for (List<ResourceImporter::ImportOption>::Element *E = options.front(); E; E = E->next()) {
@@ -159,24 +160,7 @@ void ImportDock::_update_options(const Ref<ConfigFile> &p_config) {
 	}
 
 	params->update();
-
-	preset->get_popup()->clear();
-
-	if (params->importer->get_preset_count() == 0) {
-		preset->get_popup()->add_item(TTR("Default"));
-	} else {
-		for (int i = 0; i < params->importer->get_preset_count(); i++) {
-			preset->get_popup()->add_item(params->importer->get_preset_name(i));
-		}
-	}
-
-	preset->get_popup()->add_separator();
-	preset->get_popup()->add_item(vformat(TTR("Set as Default for '%s'"), params->importer->get_visible_name()), ITEM_SET_AS_DEFAULT);
-	if (ProjectSettings::get_singleton()->has_setting("importer_defaults/" + params->importer->get_importer_name())) {
-		preset->get_popup()->add_item(TTR("Load Default"), ITEM_LOAD_DEFAULT);
-		preset->get_popup()->add_separator();
-		preset->get_popup()->add_item(vformat(TTR("Clear Default for '%s'"), params->importer->get_visible_name()), ITEM_CLEAR_DEFAULT);
-	}
+	_update_preset_menu();
 }
 
 void ImportDock::set_edit_multiple_paths(const Vector<String> &p_paths) {
@@ -276,6 +260,17 @@ void ImportDock::set_edit_multiple_paths(const Vector<String> &p_paths) {
 		}
 	}
 
+	_update_preset_menu();
+
+	params->paths = p_paths;
+	import->set_disabled(false);
+	import_as->set_disabled(false);
+	preset->set_disabled(false);
+
+	imported->set_text(vformat(TTR("%d Files"), p_paths.size()));
+}
+
+void ImportDock::_update_preset_menu() {
 	preset->get_popup()->clear();
 
 	if (params->importer->get_preset_count() == 0) {
@@ -286,12 +281,13 @@ void ImportDock::set_edit_multiple_paths(const Vector<String> &p_paths) {
 		}
 	}
 
-	params->paths = p_paths;
-	import->set_disabled(false);
-	import_as->set_disabled(false);
-	preset->set_disabled(false);
-
-	imported->set_text(itos(p_paths.size()) + TTR(" Files"));
+	preset->get_popup()->add_separator();
+	preset->get_popup()->add_item(vformat(TTR("Set as Default for '%s'"), params->importer->get_visible_name()), ITEM_SET_AS_DEFAULT);
+	if (ProjectSettings::get_singleton()->has_setting("importer_defaults/" + params->importer->get_importer_name())) {
+		preset->get_popup()->add_item(TTR("Load Default"), ITEM_LOAD_DEFAULT);
+		preset->get_popup()->add_separator();
+		preset->get_popup()->add_item(vformat(TTR("Clear Default for '%s'"), params->importer->get_visible_name()), ITEM_CLEAR_DEFAULT);
+	}
 }
 
 void ImportDock::_importer_selected(int i_idx) {
@@ -326,7 +322,7 @@ void ImportDock::_preset_selected(int p_idx) {
 
 			ProjectSettings::get_singleton()->set("importer_defaults/" + params->importer->get_importer_name(), d);
 			ProjectSettings::get_singleton()->save();
-
+			_update_preset_menu();
 		} break;
 		case ITEM_LOAD_DEFAULT: {
 
@@ -336,17 +332,22 @@ void ImportDock::_preset_selected(int p_idx) {
 			List<Variant> v;
 			d.get_key_list(&v);
 
+			if (params->checking) {
+				params->checked.clear();
+			}
 			for (List<Variant>::Element *E = v.front(); E; E = E->next()) {
 				params->values[E->get()] = d[E->get()];
+				if (params->checking) {
+					params->checked.insert(E->get());
+				}
 			}
 			params->update();
-
 		} break;
 		case ITEM_CLEAR_DEFAULT: {
 
 			ProjectSettings::get_singleton()->set("importer_defaults/" + params->importer->get_importer_name(), Variant());
 			ProjectSettings::get_singleton()->save();
-
+			_update_preset_menu();
 		} break;
 		default: {
 
@@ -354,11 +355,15 @@ void ImportDock::_preset_selected(int p_idx) {
 
 			params->importer->get_import_options(&options, p_idx);
 
-			for (List<ResourceImporter::ImportOption>::Element *E = options.front(); E; E = E->next()) {
-
-				params->values[E->get().option.name] = E->get().default_value;
+			if (params->checking) {
+				params->checked.clear();
 			}
-
+			for (List<ResourceImporter::ImportOption>::Element *E = options.front(); E; E = E->next()) {
+				params->values[E->get().option.name] = E->get().default_value;
+				if (params->checking) {
+					params->checked.insert(E->get().option.name);
+				}
+			}
 			params->update();
 		} break;
 	}
@@ -445,8 +450,8 @@ void ImportDock::_reimport() {
 
 		String importer_name = params->importer->get_importer_name();
 
-		if (params->checking) {
-			//update only what edited (checkboxes)
+		if (params->checking && config->get_value("remap", "importer") == params->importer->get_importer_name()) {
+			//update only what is edited (checkboxes) if the importer is the same
 			for (List<PropertyInfo>::Element *E = params->properties.front(); E; E = E->next()) {
 				if (params->checked.has(E->get().name)) {
 					config->set_value("params", E->get().name, params->values[E->get().name]);
@@ -558,7 +563,7 @@ ImportDock::ImportDock() {
 	hb->add_spacer();
 
 	reimport_confirm = memnew(ConfirmationDialog);
-	reimport_confirm->get_ok()->set_text(TTR("Save scenes, re-import and restart"));
+	reimport_confirm->get_ok()->set_text(TTR("Save Scenes, Re-Import, and Restart"));
 	add_child(reimport_confirm);
 	reimport_confirm->connect("confirmed", this, "_reimport_and_restart");
 

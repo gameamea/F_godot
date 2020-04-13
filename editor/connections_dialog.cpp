@@ -119,6 +119,9 @@ void ConnectDialog::ok_pressed() {
 		return;
 	}
 	Node *target = tree->get_selected();
+	if (!target) {
+		return; // Nothing selected in the tree, not an error.
+	}
 	if (target->get_script().is_null()) {
 		if (!target->has_method(dst_method->get_text())) {
 			error->set_text(TTR("Target method not found. Specify a valid method or attach a script to the target node."));
@@ -147,16 +150,6 @@ void ConnectDialog::_tree_node_selected() {
 
 	dst_path = source->get_path_to(current);
 	_update_ok_enabled();
-}
-
-/*
- * Called each time a target node is activated within the target node tree.
- */
-void ConnectDialog::_tree_item_activated() {
-
-	if (!get_ok()->is_disabled()) {
-		get_ok()->emit_signal("pressed");
-	}
 }
 
 /*
@@ -243,7 +236,6 @@ void ConnectDialog::_bind_methods() {
 	ClassDB::bind_method("_advanced_pressed", &ConnectDialog::_advanced_pressed);
 	ClassDB::bind_method("_cancel", &ConnectDialog::_cancel_pressed);
 	ClassDB::bind_method("_tree_node_selected", &ConnectDialog::_tree_node_selected);
-	ClassDB::bind_method("_tree_item_activated", &ConnectDialog::_tree_item_activated);
 	ClassDB::bind_method("_add_bind", &ConnectDialog::_add_bind);
 	ClassDB::bind_method("_remove_bind", &ConnectDialog::_remove_bind);
 	ClassDB::bind_method("_update_ok_enabled", &ConnectDialog::_update_ok_enabled);
@@ -397,7 +389,7 @@ ConnectDialog::ConnectDialog() {
 
 	tree = memnew(SceneTreeEditor(false));
 	tree->set_connecting_signal(true);
-	tree->get_scene_tree()->connect("item_activated", this, "_tree_item_activated");
+	tree->get_scene_tree()->connect("item_activated", this, "_ok");
 	tree->connect("node_selected", this, "_tree_node_selected");
 	tree->set_connect_to_script_mode(true);
 
@@ -508,7 +500,6 @@ Control *ConnectionsDockTree::make_custom_tooltip(const String &p_text) const {
 	String text = TTR("Signal:") + " [u][b]" + p_text.get_slice("::", 0) + "[/b][/u]";
 	text += p_text.get_slice("::", 1).strip_edges() + "\n";
 	text += p_text.get_slice("::", 2).strip_edges();
-	help_bit->set_text(text);
 	help_bit->call_deferred("set_text", text); //hack so it uses proper theme once inside scene
 	return help_bit;
 }

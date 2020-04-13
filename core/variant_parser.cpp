@@ -51,10 +51,16 @@ bool VariantParser::StreamFile::is_eof() const {
 
 CharType VariantParser::StreamString::get_char() {
 
-	if (pos >= s.length())
+	if (pos > s.length()) {
 		return 0;
-	else
+	} else if (pos == s.length()) {
+		// You need to try to read again when you have reached the end for EOF to be reported,
+		// so this works the same as files (like StreamFile does)
+		pos++;
+		return 0;
+	} else {
 		return s[pos++];
+	}
 }
 
 bool VariantParser::StreamString::is_utf8() const {
@@ -512,6 +518,10 @@ Error VariantParser::parse_value(Token &token, Variant &value, Stream *p_stream,
 			value = false;
 		else if (id == "null" || id == "nil")
 			value = Variant();
+		else if (id == "inf")
+			value = Math_INF;
+		else if (id == "nan")
+			value = Math_NAN;
 		else if (id == "Vector2") {
 
 			Vector<float> args;
@@ -1586,8 +1596,10 @@ Error VariantWriter::write(const Variant &p_variant, StoreStringFunc p_store_str
 		case Variant::REAL: {
 
 			String s = rtosfix(p_variant.operator real_t());
-			if (s.find(".") == -1 && s.find("e") == -1)
-				s += ".0";
+			if (s != "inf" && s != "nan") {
+				if (s.find(".") == -1 && s.find("e") == -1)
+					s += ".0";
+			}
 			p_store_string_func(p_store_string_ud, s);
 		} break;
 		case Variant::STRING: {

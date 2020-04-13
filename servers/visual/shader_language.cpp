@@ -132,6 +132,7 @@ const char *ShaderLanguage::token_names[TK_MAX] = {
 	"TYPE_ISAMPLER3D",
 	"TYPE_USAMPLER3D",
 	"TYPE_SAMPLERCUBE",
+	"TYPE_SAMPLEREXT",
 	"INTERPOLATION_FLAT",
 	"INTERPOLATION_SMOOTH",
 	"CONST",
@@ -272,6 +273,7 @@ const ShaderLanguage::KeyWord ShaderLanguage::keyword_list[] = {
 	{ TK_TYPE_ISAMPLER3D, "isampler3D" },
 	{ TK_TYPE_USAMPLER3D, "usampler3D" },
 	{ TK_TYPE_SAMPLERCUBE, "samplerCube" },
+	{ TK_TYPE_SAMPLEREXT, "samplerExternalOES" },
 	{ TK_INTERPOLATION_FLAT, "flat" },
 	{ TK_INTERPOLATION_SMOOTH, "smooth" },
 	{ TK_CONST, "const" },
@@ -755,7 +757,8 @@ bool ShaderLanguage::is_token_datatype(TokenType p_type) {
 			p_type == TK_TYPE_SAMPLER3D ||
 			p_type == TK_TYPE_ISAMPLER3D ||
 			p_type == TK_TYPE_USAMPLER3D ||
-			p_type == TK_TYPE_SAMPLERCUBE);
+			p_type == TK_TYPE_SAMPLERCUBE ||
+			p_type == TK_TYPE_SAMPLEREXT);
 }
 
 ShaderLanguage::DataType ShaderLanguage::get_token_datatype(TokenType p_type) {
@@ -841,6 +844,7 @@ String ShaderLanguage::get_datatype_name(DataType p_type) {
 		case TYPE_ISAMPLER3D: return "isampler3D";
 		case TYPE_USAMPLER3D: return "usampler3D";
 		case TYPE_SAMPLERCUBE: return "samplerCube";
+		case TYPE_SAMPLEREXT: return "samplerExternalOES";
 	}
 
 	return "";
@@ -1983,6 +1987,8 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
 	{ "texture", TYPE_IVEC4, { TYPE_ISAMPLER3D, TYPE_VEC3, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, true },
 	{ "texture", TYPE_VEC4, { TYPE_SAMPLERCUBE, TYPE_VEC3, TYPE_VOID }, TAG_GLOBAL, false },
 	{ "texture", TYPE_VEC4, { TYPE_SAMPLERCUBE, TYPE_VEC3, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, false },
+	{ "texture", TYPE_VEC4, { TYPE_SAMPLEREXT, TYPE_VEC2, TYPE_VOID }, TAG_GLOBAL, false },
+	{ "texture", TYPE_VEC4, { TYPE_SAMPLEREXT, TYPE_VEC2, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, false },
 
 	{ "textureProj", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC3, TYPE_VOID }, TAG_GLOBAL, true },
 	{ "textureProj", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC4, TYPE_VOID }, TAG_GLOBAL, true },
@@ -2002,6 +2008,10 @@ const ShaderLanguage::BuiltinFuncDef ShaderLanguage::builtin_func_defs[] = {
 	{ "textureProj", TYPE_IVEC4, { TYPE_ISAMPLER3D, TYPE_VEC4, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, true },
 	{ "textureProj", TYPE_UVEC4, { TYPE_USAMPLER3D, TYPE_VEC4, TYPE_VOID }, TAG_GLOBAL, true },
 	{ "textureProj", TYPE_UVEC4, { TYPE_USAMPLER3D, TYPE_VEC4, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, true },
+	{ "textureProj", TYPE_VEC4, { TYPE_SAMPLEREXT, TYPE_VEC3, TYPE_VOID }, TAG_GLOBAL, true },
+	{ "textureProj", TYPE_VEC4, { TYPE_SAMPLEREXT, TYPE_VEC4, TYPE_VOID }, TAG_GLOBAL, true },
+	{ "textureProj", TYPE_VEC4, { TYPE_SAMPLEREXT, TYPE_VEC3, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, true },
+	{ "textureProj", TYPE_VEC4, { TYPE_SAMPLEREXT, TYPE_VEC4, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, true },
 
 	{ "textureLod", TYPE_VEC4, { TYPE_SAMPLER2D, TYPE_VEC2, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, false },
 	{ "textureLod", TYPE_IVEC4, { TYPE_ISAMPLER2D, TYPE_VEC2, TYPE_FLOAT, TYPE_VOID }, TAG_GLOBAL, true },
@@ -2156,6 +2166,14 @@ bool ShaderLanguage::_validate_function_call(BlockNode *p_block, OperatorNode *p
 									if (b->variables.has(var_name)) {
 										valid = true;
 										break;
+									}
+									if (b->parent_function) {
+										for (int i = 0; i < b->parent_function->arguments.size(); i++) {
+											if (b->parent_function->arguments[i].name == var_name) {
+												valid = true;
+												break;
+											}
+										}
 									}
 									b = b->parent_block;
 								}
@@ -2452,7 +2470,8 @@ bool ShaderLanguage::is_sampler_type(DataType p_type) {
 		   p_type == TYPE_SAMPLER3D ||
 		   p_type == TYPE_ISAMPLER3D ||
 		   p_type == TYPE_USAMPLER3D ||
-		   p_type == TYPE_SAMPLERCUBE;
+		   p_type == TYPE_SAMPLERCUBE ||
+		   p_type == TYPE_SAMPLEREXT;
 }
 
 Variant ShaderLanguage::constant_value_to_variant(const Vector<ShaderLanguage::ConstantNode::Value> &p_value, DataType p_type, ShaderLanguage::ShaderNode::Uniform::Hint p_hint) {
@@ -2546,7 +2565,8 @@ Variant ShaderLanguage::constant_value_to_variant(const Vector<ShaderLanguage::C
 			case ShaderLanguage::TYPE_USAMPLER2DARRAY:
 			case ShaderLanguage::TYPE_USAMPLER2D:
 			case ShaderLanguage::TYPE_USAMPLER3D:
-			case ShaderLanguage::TYPE_SAMPLERCUBE: {
+			case ShaderLanguage::TYPE_SAMPLERCUBE:
+			case ShaderLanguage::TYPE_SAMPLEREXT: {
 				// Texture types, likely not relevant here.
 				break;
 			}
@@ -2986,14 +3006,32 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 				bool is_const = false;
 				int array_size = 0;
 
-				if (!_find_identifier(p_block, p_builtin_types, identifier, &data_type, &ident_type, &is_const, &array_size)) {
-					_set_error("Unknown identifier in expression: " + String(identifier));
-					return NULL;
-				}
+				if (p_block && p_block->block_tag != SubClassTag::TAG_GLOBAL) {
+					int idx = 0;
+					bool found = false;
 
-				if (ident_type == IDENTIFIER_FUNCTION) {
-					_set_error("Can't use function as identifier: " + String(identifier));
-					return NULL;
+					while (builtin_func_defs[idx].name) {
+						if (builtin_func_defs[idx].tag == p_block->block_tag && builtin_func_defs[idx].name == identifier) {
+							found = true;
+							break;
+						}
+						idx++;
+					}
+					if (!found) {
+						_set_error("Unknown identifier in expression: " + String(identifier));
+						return NULL;
+					}
+				} else {
+
+					if (!_find_identifier(p_block, p_builtin_types, identifier, &data_type, &ident_type, &is_const, &array_size)) {
+						_set_error("Unknown identifier in expression: " + String(identifier));
+						return NULL;
+					}
+
+					if (ident_type == IDENTIFIER_FUNCTION) {
+						_set_error("Can't use function as identifier: " + String(identifier));
+						return NULL;
+					}
 				}
 
 				Node *index_expression = NULL;
@@ -3009,7 +3047,9 @@ ShaderLanguage::Node *ShaderLanguage::_parse_expression(BlockNode *p_block, cons
 
 					if (tk.type == TK_PERIOD) {
 						completion_class = TAG_ARRAY;
+						p_block->block_tag = SubClassTag::TAG_ARRAY;
 						call_expression = _parse_and_reduce_expression(p_block, p_builtin_types);
+						p_block->block_tag = SubClassTag::TAG_GLOBAL;
 						if (!call_expression)
 							return NULL;
 						data_type = call_expression->get_datatype();

@@ -164,7 +164,6 @@ def configure(env):
         env.Tool('gcc')
         env.use_windows_spawn_fix()
 
-    mt_link = True
     if (sys.platform.startswith("linux")):
         host_subpath = "linux-x86_64"
     elif (sys.platform.startswith("darwin")):
@@ -173,11 +172,7 @@ def configure(env):
         if (platform.machine().endswith('64')):
             host_subpath = "windows-x86_64"
         else:
-            mt_link = False
             host_subpath = "windows"
-
-    if env["android_arch"] == "arm64v8":
-        mt_link = False
 
     compiler_path = env["ANDROID_NDK_ROOT"] + "/toolchains/llvm/prebuilt/" + host_subpath + "/bin"
     gcc_toolchain_path = env["ANDROID_NDK_ROOT"] + "/toolchains/" + target_subpath + "/prebuilt/" + host_subpath
@@ -205,7 +200,6 @@ def configure(env):
 
     env.Append(CPPFLAGS=["-isystem", env["ANDROID_NDK_ROOT"] + "/sources/cxx-stl/llvm-libc++/include"])
     env.Append(CPPFLAGS=["-isystem", env["ANDROID_NDK_ROOT"] + "/sources/cxx-stl/llvm-libc++abi/include"])
-    env.Append(CXXFLAGS=["-std=gnu++14"])
 
     # Disable exceptions and rtti on non-tools (template) builds
     if env['tools']:

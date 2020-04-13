@@ -547,9 +547,7 @@ void ExportTemplateManager::_notification(int p_what) {
 bool ExportTemplateManager::can_install_android_template() {
 
 	const String templates_dir = EditorSettings::get_singleton()->get_templates_dir().plus_file(VERSION_FULL_CONFIG);
-	return FileAccess::exists(templates_dir.plus_file("android_source.zip")) &&
-		   FileAccess::exists(templates_dir.plus_file("android_release.apk")) &&
-		   FileAccess::exists(templates_dir.plus_file("android_debug.apk"));
+	return FileAccess::exists(templates_dir.plus_file("android_source.zip"));
 }
 
 Error ExportTemplateManager::install_android_template() {
@@ -563,13 +561,6 @@ Error ExportTemplateManager::install_android_template() {
 	// Make res://android dir (if it does not exist).
 	da->make_dir("android");
 	{
-		// Add an empty .gdignore file to avoid scan.
-		FileAccessRef f = FileAccess::open("res://android/.gdignore", FileAccess::WRITE);
-		ERR_FAIL_COND_V(!f, ERR_CANT_CREATE);
-		f->store_line("");
-		f->close();
-	}
-	{
 		// Add version, to ensure building won't work if template and Godot version don't match.
 		FileAccessRef f = FileAccess::open("res://android/.build_version", FileAccess::WRITE);
 		ERR_FAIL_COND_V(!f, ERR_CANT_CREATE);
@@ -577,8 +568,19 @@ Error ExportTemplateManager::install_android_template() {
 		f->close();
 	}
 
-	Error err = da->make_dir_recursive("android/build");
+	// Create the android plugins directory.
+	Error err = da->make_dir_recursive("android/plugins");
 	ERR_FAIL_COND_V(err != OK, err);
+
+	err = da->make_dir_recursive("android/build");
+	ERR_FAIL_COND_V(err != OK, err);
+	{
+		// Add an empty .gdignore file to avoid scan.
+		FileAccessRef f = FileAccess::open("res://android/build/.gdignore", FileAccess::WRITE);
+		ERR_FAIL_COND_V(!f, ERR_CANT_CREATE);
+		f->store_line("");
+		f->close();
+	}
 
 	// Uncompress source template.
 

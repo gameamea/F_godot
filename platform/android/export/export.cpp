@@ -337,7 +337,7 @@ class EditorExportPlatformAndroid : public EditorExportPlatform {
 							Vector<String> props = dp.split("\n");
 							String vendor;
 							String device;
-							d.description + "Device ID: " + d.id + "\n";
+							d.description = "Device ID: " + d.id + "\n";
 							d.api_level = 0;
 							for (int j = 0; j < props.size(); j++) {
 
@@ -692,6 +692,8 @@ class EditorExportPlatformAndroid : public EditorExportPlatform {
 
 		int xr_mode_index = p_preset->get("xr_features/xr_mode");
 
+		String plugins = p_preset->get("custom_template/plugins");
+
 		Vector<String> perms;
 
 		const char **aperms = android_perms;
@@ -858,6 +860,11 @@ class EditorExportPlatformAndroid : public EditorExportPlatform {
 							if (xr_mode_index == 1 /* XRMode.OVR */) {
 								string_table.write[attr_value] = "vr_only";
 							}
+						}
+
+						if (tname == "meta-data" && attrname == "value" && value == "custom_template_plugins_value") {
+							// Update the meta-data 'android:value' attribute with the list of enabled plugins.
+							string_table.write[attr_value] = plugins;
 						}
 
 						iofs += 20;
@@ -1373,6 +1380,7 @@ public:
 		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_template/debug", PROPERTY_HINT_GLOBAL_FILE, "*.apk"), ""));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_template/release", PROPERTY_HINT_GLOBAL_FILE, "*.apk"), ""));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::BOOL, "custom_template/use_custom_build"), false));
+		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "custom_template/plugins", PROPERTY_HINT_PLACEHOLDER_TEXT, "Plugin1,Plugin2,..."), ""));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "command_line/extra_args"), ""));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::INT, "version/code", PROPERTY_HINT_RANGE, "1,4096,1,or_greater"), 1));
 		r_options->push_back(ExportOption(PropertyInfo(Variant::STRING, "version/name"), "1.0"));
@@ -1854,6 +1862,7 @@ public:
 					while (!f->eof_reached()) {
 						String l = f->get_line();
 
+						bool append_line = false;
 						if (l.begins_with("//CHUNK_")) {
 							String text = l.replace_first("//CHUNK_", "");
 							int begin_pos = text.find("_BEGIN");
@@ -1885,10 +1894,14 @@ public:
 											new_file += E->get() + "\n";
 										}
 									}
-									new_file += end_marker + "\n";
+									if (f->eof_reached()) {
+										new_file += end_marker;
+									} else {
+										new_file += end_marker + "\n";
+									}
 								}
 							} else {
-								new_file += l + "\n"; //pass line by
+								append_line = true;
 							}
 						} else if (l.begins_with("//DIR_")) {
 							String text = l.replace_first("//DIR_", "");
@@ -1921,14 +1934,25 @@ public:
 											new_file += "\n";
 										}
 									}
-									new_file += end_marker + "\n";
+									if (f->eof_reached()) {
+										new_file += end_marker;
+									} else {
+										new_file += end_marker + "\n";
+									}
 								}
 							} else {
-								new_file += l + "\n"; //pass line by
+								append_line = true;
 							}
-
 						} else {
-							new_file += l + "\n";
+							append_line = true;
+						}
+
+						if (append_line) {
+							if (f->eof_reached()) {
+								new_file += l;
+							} else {
+								new_file += l + "\n";
+							}
 						}
 					}
 				}
@@ -1949,6 +1973,7 @@ public:
 					while (!f->eof_reached()) {
 						String l = f->get_line();
 
+						bool append_line = false;
 						if (l.begins_with("<!--CHUNK_")) {
 							String text = l.replace_first("<!--CHUNK_", "");
 							int begin_pos = text.find("_BEGIN-->");
@@ -1979,10 +2004,14 @@ public:
 											new_file += E->get() + "\n";
 										}
 									}
-									new_file += end_marker + "\n";
+									if (f->eof_reached()) {
+										new_file += end_marker;
+									} else {
+										new_file += end_marker + "\n";
+									}
 								}
 							} else {
-								new_file += l + "\n"; //pass line by
+								append_line = true;
 							}
 
 						} else if (l.strip_edges().begins_with("<application")) {
@@ -1990,7 +2019,7 @@ public:
 							int last_tag_pos = l.find(last_tag);
 							if (last_tag_pos == -1) {
 								ERR_PRINTS("Not adding application attributes as the expected tag was not found in '<application': " + last_tag);
-								new_file += l + "\n";
+								append_line = true;
 							} else {
 								String base = l.substr(0, last_tag_pos + last_tag.length());
 								if (manifest_sections.has("application_attribs")) {
@@ -2003,7 +2032,14 @@ public:
 								new_file += base;
 							}
 						} else {
-							new_file += l + "\n";
+							append_line = true;
+						}
+
+						if (append_line) {
+							new_file += l;
+							if (!f->eof_reached()) {
+								new_file += "\n";
+							}
 						}
 					}
 				}
@@ -2055,14 +2091,18 @@ public:
 #endif
 
 			String build_path = ProjectSettings::get_singleton()->get_resource_path().plus_file("android/build");
+			String plugins_dir = ProjectSettings::get_singleton()->get_resource_path().plus_file("android/plugins");
 
 			build_command = build_path.plus_file(build_command);
 
 			String package_name = get_package_name(p_preset->get("package/unique_name"));
+			String plugins = p_preset->get("custom_template/plugins");
 
 			List<String> cmdline;
 			cmdline.push_back("build");
 			cmdline.push_back("-Pexport_package_name=" + package_name); // argument to specify the package name.
+			cmdline.push_back("-Pcustom_template_plugins_dir=" + plugins_dir); // argument to specify the plugins directory.
+			cmdline.push_back("-Pcustom_template_plugins=" + plugins); // argument to specify the list of plugins to enable.
 			cmdline.push_back("-p"); // argument to specify the start directory.
 			cmdline.push_back(build_path); // start directory.
 			/*{ used for debug

@@ -1,5 +1,4 @@
 import os
-import os.path
 import re
 import glob
 import subprocess
@@ -181,53 +180,6 @@ void unregister_module_types() {
 
     return module_list
 
-
-def win32_spawn(sh, escape, cmd, args, env):
-    import subprocess
-    newargs = ' '.join(args[1:])
-    cmdline = cmd + " " + newargs
-    startupinfo = subprocess.STARTUPINFO()
-    for e in env:
-        if type(env[e]) != type(""):
-            env[e] = str(env[e])
-    proc = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, startupinfo=startupinfo, shell=False, env=env)
-    _, err = proc.communicate()
-    rv = proc.wait()
-    if rv:
-        print("=====")
-        print(err)
-        print("=====")
-    return rv
-
-"""
-def win32_spawn(sh, escape, cmd, args, spawnenv):
-	import win32file
-	import win32event
-	import win32process
-	import win32security
-	for var in spawnenv:
-		spawnenv[var] = spawnenv[var].encode('ascii', 'replace')
-
-	sAttrs = win32security.SECURITY_ATTRIBUTES()
-	StartupInfo = win32process.STARTUPINFO()
-	newargs = ' '.join(map(escape, args[1:]))
-	cmdline = cmd + " " + newargs
-
-	# check for any special operating system commands
-	if cmd == 'del':
-		for arg in args[1:]:
-			win32file.DeleteFile(arg)
-		exit_code = 0
-	else:
-		# otherwise execute the command.
-		hProcess, hThread, dwPid, dwTid = win32process.CreateProcess(None, cmdline, None, None, 1, 0, spawnenv, None, StartupInfo)
-		win32event.WaitForSingleObject(hProcess, win32event.INFINITE)
-		exit_code = win32process.GetExitCodeProcess(hProcess)
-		win32file.CloseHandle(hProcess);
-		win32file.CloseHandle(hThread);
-	return exit_code
-"""
 
 def disable_module(self):
     self.disabled_modules.append(self.current_module)
@@ -626,14 +578,23 @@ def detect_darwin_sdk_path(platform, env):
             raise
 
 def get_compiler_version(env):
-    # Not using this method on clang because it returns 4.2.1 # https://reviews.llvm.org/D56803
-    if using_gcc(env):
-        version = decode_utf8(subprocess.check_output([env['CXX'], '-dumpversion']).strip())
-    else:
-        version = decode_utf8(subprocess.check_output([env['CXX'], '--version']).strip())
-    match = re.search('[0-9][0-9.]*', version)
+    """
+    Returns an array of version numbers as ints: [major, minor, patch].
+    The return array should have at least two values (major, minor).
+    """
+    if not env.msvc:
+        # Not using -dumpversion as some GCC distros only return major, and
+        # Clang used to return hardcoded 4.2.1: # https://reviews.llvm.org/D56803
+        try:
+            version = decode_utf8(subprocess.check_output([env.subst(env['CXX']), '--version']).strip())
+        except (subprocess.CalledProcessError, OSError):
+            print("Couldn't parse CXX environment variable to infer compiler version.")
+            return None
+    else:  # TODO: Implement for MSVC
+        return None
+    match = re.search('[0-9]+\.[0-9.]+', version)
     if match is not None:
-        return match.group().split('.')
+        return list(map(int, match.group().split('.')))
     else:
         return None
 

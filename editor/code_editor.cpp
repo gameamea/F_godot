@@ -686,6 +686,16 @@ void CodeTextEditor::_input(const Ref<InputEvent> &event) {
 		accept_event();
 		return;
 	}
+	if (ED_IS_SHORTCUT("script_text_editor/delete_line", key_event)) {
+		delete_lines();
+		accept_event();
+		return;
+	}
+	if (ED_IS_SHORTCUT("script_text_editor/clone_down", key_event)) {
+		clone_lines_down();
+		accept_event();
+		return;
+	}
 }
 
 void CodeTextEditor::_text_editor_gui_input(const Ref<InputEvent> &p_event) {
@@ -1251,7 +1261,7 @@ void CodeTextEditor::clone_lines_down() {
 	text_editor->cursor_set_line(cursor_new_line);
 	text_editor->cursor_set_column(cursor_new_column);
 	if (selection_active) {
-		text_editor->select(to_line, to_column, 2 * to_line - from_line, 2 * to_column - from_column);
+		text_editor->select(to_line, to_column, 2 * to_line - from_line, to_line == from_line ? 2 * to_column - from_column : to_column);
 	}
 
 	text_editor->end_complex_operation();

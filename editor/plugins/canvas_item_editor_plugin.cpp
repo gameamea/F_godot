@@ -2077,7 +2077,7 @@ bool CanvasItemEditor::_gui_input_move(const Ref<InputEvent> &p_event) {
 	}
 
 	// Move the canvas items with the arrow keys
-	if (k.is_valid() && k->is_pressed() && tool == TOOL_SELECT &&
+	if (k.is_valid() && k->is_pressed() && (tool == TOOL_SELECT || tool == TOOL_MOVE) &&
 			(k->get_scancode() == KEY_UP || k->get_scancode() == KEY_DOWN || k->get_scancode() == KEY_LEFT || k->get_scancode() == KEY_RIGHT)) {
 		if (!k->is_echo()) {
 			// Start moving the canvas items with the keyboard
@@ -4217,10 +4217,20 @@ void CanvasItemEditor::_zoom_on_position(float p_zoom, Point2 p_position) {
 
 	float prev_zoom = zoom;
 	zoom = p_zoom;
-	Point2 ofs = p_position;
-	ofs = ofs / prev_zoom - ofs / zoom;
-	view_offset.x = Math::round(view_offset.x + ofs.x);
-	view_offset.y = Math::round(view_offset.y + ofs.y);
+
+	view_offset += p_position / prev_zoom - p_position / zoom;
+
+	// We want to align in-scene pixels to screen pixels, this prevents blurry rendering
+	// in small details (texts, lines).
+	// This correction adds a jitter movement when zooming, so we correct only when the
+	// zoom factor is an integer. (in the other cases, all pixels won't be aligned anyway)
+	float closest_zoom_factor = Math::round(zoom);
+	if (Math::is_zero_approx(zoom - closest_zoom_factor)) {
+		// make sure scene pixel at view_offset is aligned on a screen pixel
+		Vector2 view_offset_int = view_offset.floor();
+		Vector2 view_offset_frac = view_offset - view_offset_int;
+		view_offset = view_offset_int + (view_offset_frac * closest_zoom_factor).round() / closest_zoom_factor;
+	}
 
 	_update_zoom_label();
 	update_viewport();
@@ -4967,6 +4977,7 @@ void CanvasItemEditor::_focus_selection(int p_op) {
 			zoom = scale_x < scale_y ? scale_x : scale_y;
 			zoom *= 0.90;
 			viewport->update();
+			_update_zoom_label();
 			call_deferred("_popup_callback", VIEW_CENTER_TO_SELECTION);
 		}
 	}

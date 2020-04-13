@@ -1400,7 +1400,6 @@ void EditorNode::_mark_unsaved_scenes() {
 		String path = node->get_filename();
 		if (!(path == String() || FileAccess::exists(path))) {
 
-			node->set_filename("");
 			if (i == editor_data.get_edited_scene())
 				set_current_version(-1);
 			else
@@ -3246,7 +3245,7 @@ void EditorNode::_clear_undo_history() {
 void EditorNode::set_current_scene(int p_idx) {
 
 	//Save the folding in case the scene gets reloaded.
-	if (editor_data.get_scene_path(p_idx) != "")
+	if (editor_data.get_scene_path(p_idx) != "" && editor_data.get_edited_scene_root(p_idx))
 		editor_folding.save_scene_folding(editor_data.get_edited_scene_root(p_idx), editor_data.get_scene_path(p_idx));
 
 	if (editor_data.check_and_update_scene(p_idx)) {
@@ -3673,6 +3672,7 @@ void EditorNode::register_editor_types() {
 	ClassDB::register_class<ScriptCreateDialog>();
 	ClassDB::register_class<EditorFeatureProfile>();
 	ClassDB::register_class<EditorSpinSlider>();
+	ClassDB::register_virtual_class<FileSystemDock>();
 
 	// FIXME: Is this stuff obsolete, or should it be ported to new APIs?
 	ClassDB::register_class<EditorScenePostImport>();
@@ -5798,7 +5798,7 @@ EditorNode::EditorNode() {
 	EDITOR_DEF_RST("interface/scene_tabs/show_thumbnail_on_hover", true);
 	EDITOR_DEF_RST("interface/inspector/capitalize_properties", true);
 	EDITOR_DEF_RST("interface/inspector/default_float_step", 0.001);
-	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::REAL, "interface/inspector/default_float_step", PROPERTY_HINT_EXP_RANGE, "0,1,0"));
+	EditorSettings::get_singleton()->add_property_hint(PropertyInfo(Variant::REAL, "interface/inspector/default_float_step", PROPERTY_HINT_RANGE, "0,1,0"));
 	EDITOR_DEF_RST("interface/inspector/disable_folding", false);
 	EDITOR_DEF_RST("interface/inspector/auto_unfold_foreign_scenes", true);
 	EDITOR_DEF("interface/inspector/horizontal_vector2_editing", false);
@@ -6833,6 +6833,9 @@ EditorNode::EditorNode() {
 	screenshot_timer->connect("timeout", this, "_request_screenshot");
 	add_child(screenshot_timer);
 	screenshot_timer->set_owner(get_owner());
+
+	String exec = OS::get_singleton()->get_executable_path();
+	EditorSettings::get_singleton()->set_project_metadata("editor_metadata", "executable_path", exec); // Save editor executable path for third-party tools
 }
 
 EditorNode::~EditorNode() {
