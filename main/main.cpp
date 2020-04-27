@@ -1592,7 +1592,6 @@ bool Main::start() {
 			return false;
 		}
 
-<<<<<<< HEAD
 		if (format_script) {
 			String code = script_res->get_source_code();
 			script_res->get_language()->auto_format_code(code);
@@ -1601,10 +1600,6 @@ bool Main::start() {
 		}
 
 		if (script_res->can_instance() /*&& script_res->inherits_from("SceneTreeScripted")*/) {
-=======
-		if (script_res->can_instance()) {
->>>>>>> upstream/3.2
-
 			StringName instance_type = script_res->get_instance_base_type();
 			Object *obj = ClassDB::instance(instance_type);
 			MainLoop *script_loop = Object::cast_to<MainLoop>(obj);
