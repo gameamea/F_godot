@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  gd_mono_android.h                                                    */
+/*  object_rc.h                                                          */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,25 +28,48 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef GD_MONO_ANDROID_H
-#define GD_MONO_ANDROID_H
+#ifndef OBJECTRC_H
+#define OBJECTRC_H
 
-#if defined(ANDROID_ENABLED)
+#ifdef DEBUG_ENABLED
 
-#include "core/ustring.h"
+#include "core/os/memory.h"
+#include "core/typedefs.h"
 
-namespace GDMonoAndroid {
+#include <atomic>
 
-String get_app_native_lib_dir();
+class Object;
 
-void initialize();
+// Used to track Variants pointing to a non-Reference Object
+class ObjectRC {
+	std::atomic<Object *> _ptr;
+	std::atomic<uint32_t> _users;
 
-void register_internal_calls();
+public:
+	_FORCE_INLINE_ void increment() {
+		_users.fetch_add(1, std::memory_order_relaxed);
+	}
 
-void cleanup();
+	_FORCE_INLINE_ bool decrement() {
+		return _users.fetch_sub(1, std::memory_order_relaxed) == 1;
+	}
 
-} // namespace GDMonoAndroid
+	_FORCE_INLINE_ bool invalidate() {
+		_ptr.store(nullptr, std::memory_order_release);
+		return decrement();
+	}
 
-#endif // ANDROID_ENABLED
+	_FORCE_INLINE_ Object *get_ptr() {
+		return _ptr.load(std::memory_order_acquire);
+	}
 
-#endif // GD_MONO_ANDROID_H
+	_FORCE_INLINE_ ObjectRC(Object *p_object) {
+		// 1 (the Object) + 1 (the first user)
+		_users.store(2, std::memory_order_relaxed);
+		_ptr.store(p_object, std::memory_order_release);
+	}
+};
+
+#endif
+
+#endif

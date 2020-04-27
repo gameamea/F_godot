@@ -602,7 +602,7 @@ int RichTextLabel::_process_line(ItemFrame *p_frame, const Vector2 &p_ofs, int &
 						} else if (strikethrough) {
 							Color uc = color;
 							uc.a *= 0.5;
-							int uy = y + lh / 2 - line_descent + 2;
+							int uy = y + lh - (line_ascent + line_descent) / 2;
 							float strikethrough_width = 1.0;
 #ifdef TOOLS_ENABLED
 							strikethrough_width *= EDSCALE;
@@ -2884,15 +2884,15 @@ Dictionary RichTextLabel::parse_expressions_for_values(Vector<String> p_expressi
 
 		Vector<String> values = parts[1].split(",", false);
 
-		RegEx color = RegEx();
+		RegEx color;
 		color.compile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
-		RegEx nodepath = RegEx();
+		RegEx nodepath;
 		nodepath.compile("^\\$");
-		RegEx boolean = RegEx();
+		RegEx boolean;
 		boolean.compile("^(true|false)$");
-		RegEx decimal = RegEx();
+		RegEx decimal;
 		decimal.compile("^-?^.?\\d+(\\.\\d+?)?$");
-		RegEx numerical = RegEx();
+		RegEx numerical;
 		numerical.compile("^\\d+$");
 
 		for (int j = 0; j < values.size(); j++) {
