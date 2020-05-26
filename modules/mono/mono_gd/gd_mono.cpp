@@ -132,6 +132,10 @@ void gd_mono_debug_init() {
 
 	CharString da_args = OS::get_singleton()->get_environment("GODOT_MONO_DEBUGGER_AGENT").utf8();
 
+	if (da_args.length()) {
+		OS::get_singleton()->set_environment("GODOT_MONO_DEBUGGER_AGENT", String());
+	}
+
 #ifdef TOOLS_ENABLED
 	int da_port = GLOBAL_DEF("mono/debugger_agent/port", 23685);
 	bool da_suspend = GLOBAL_DEF("mono/debugger_agent/wait_for_debugger", false);
@@ -422,6 +426,9 @@ void GDMono::initialize_load_assemblies() {
 	bool tool_assemblies_loaded = _load_tools_assemblies();
 	CRASH_COND_MSG(!tool_assemblies_loaded, "Mono: Failed to load '" TOOLS_ASM_NAME "' assemblies.");
 #endif
+
+	if (Main::is_project_manager())
+		return;
 
 	// Load the project's main assembly. This doesn't necessarily need to succeed.
 	// The game may not be using .NET at all, or if the project does use .NET and

@@ -1061,6 +1061,9 @@ struct _VariantCall {
 		List<StringName> value_ordered;
 #endif
 		Map<StringName, Variant> variant_value;
+#ifdef DEBUG_ENABLED
+		List<StringName> variant_value_ordered;
+#endif
 	};
 
 	static ConstantData *constant_data;
@@ -1076,6 +1079,9 @@ struct _VariantCall {
 	static void add_variant_constant(int p_type, StringName p_constant_name, const Variant &p_constant_value) {
 
 		constant_data[p_type].variant_value[p_constant_name] = p_constant_value;
+#ifdef DEBUG_ENABLED
+		constant_data[p_type].variant_value_ordered.push_back(p_constant_name);
+#endif
 	}
 };
 
@@ -1098,8 +1104,8 @@ void Variant::call_ptr(const StringName &p_method, const Variant **p_args, int p
 		Object *obj = _OBJ_PTR(*this);
 		if (!obj) {
 #ifdef DEBUG_ENABLED
-			if (ScriptDebugger::get_singleton() && _get_obj().instance_id != 0 && !ObjectDB::get_instance(_get_obj().instance_id)) {
-				WARN_PRINT("Attempted call on stray pointer object.");
+			if (ScriptDebugger::get_singleton() && _get_obj().rc && !ObjectDB::get_instance(_get_obj().rc->instance_id)) {
+				WARN_PRINT("Attempted call on a deleted object.");
 			}
 #endif
 			r_error.error = CallError::CALL_ERROR_INSTANCE_IS_NULL;
@@ -1211,6 +1217,8 @@ Variant Variant::construct(const Variant::Type p_type, const Variant **p_args, i
 			}
 			case RECT2: return (Rect2(*p_args[0]));
 			case VECTOR3: return (Vector3(*p_args[0]));
+			case TRANSFORM2D:
+				return (Transform2D(p_args[0]->operator Transform2D()));
 			case PLANE: return (Plane(*p_args[0]));
 			case QUAT: return (p_args[0]->operator Quat());
 			case AABB:
@@ -1275,8 +1283,8 @@ bool Variant::has_method(const StringName &p_method) const {
 		Object *obj = _OBJ_PTR(*this);
 		if (!obj) {
 #ifdef DEBUG_ENABLED
-			if (ScriptDebugger::get_singleton() && _get_obj().instance_id != 0 && !ObjectDB::get_instance(_get_obj().instance_id)) {
-				WARN_PRINT("Attempted method check on stray pointer object.");
+			if (ScriptDebugger::get_singleton() && _get_obj().rc && !ObjectDB::get_instance(_get_obj().rc->instance_id)) {
+				WARN_PRINT("Attempted method check on a deleted object.");
 			}
 #endif
 			return false;
@@ -1439,9 +1447,14 @@ void Variant::get_constants_for_type(Variant::Type p_type, List<StringName> *p_c
 #endif
 	}
 
+#ifdef DEBUG_ENABLED
+	for (List<StringName>::Element *E = cd.variant_value_ordered.front(); E; E = E->next()) {
+		p_constants->push_back(E->get());
+#else
 	for (Map<StringName, Variant>::Element *E = cd.variant_value.front(); E; E = E->next()) {
 
 		p_constants->push_back(E->key());
+#endif
 	}
 }
 

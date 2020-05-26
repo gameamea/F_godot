@@ -1125,7 +1125,6 @@ void Variant::clear() {
 				if (_get_obj().rc->decrement()) {
 					memfree(_get_obj().rc);
 				}
-				_get_obj().instance_id = 0;
 			} else {
 				_get_obj().ref.unref();
 			}
@@ -1602,7 +1601,7 @@ String Variant::stringify(List<const void *> &stack) const {
 				return obj->to_string();
 			} else {
 #ifdef DEBUG_ENABLED
-				if (ScriptDebugger::get_singleton() && _get_obj().instance_id != 0 && !ObjectDB::get_instance(_get_obj().instance_id)) {
+				if (ScriptDebugger::get_singleton() && _get_obj().rc && !ObjectDB::get_instance(_get_obj().rc->instance_id)) {
 					return "[Deleted Object]";
 				}
 #endif
@@ -1763,11 +1762,12 @@ Variant::operator RID() const {
 			return _get_obj().ref.get_rid();
 		} else {
 #ifdef DEBUG_ENABLED
-			Object *obj = _get_obj().rc->get_ptr();
+			Object *obj = likely(_get_obj().rc) ? _get_obj().rc->get_ptr() : NULL;
 			if (unlikely(!obj)) {
-				if (ScriptDebugger::get_singleton() && _get_obj().instance_id != 0 && !ObjectDB::get_instance(_get_obj().instance_id)) {
+				if (ScriptDebugger::get_singleton() && _get_obj().rc && !ObjectDB::get_instance(_get_obj().rc->instance_id)) {
 					WARN_PRINT("Attempted get RID on a deleted object.");
 				}
+				return RID();
 			}
 #else
 			Object *obj = _get_obj().obj;
@@ -2318,7 +2318,6 @@ Variant::Variant(const RefPtr &p_resource) {
 	memnew_placement(_data._mem, ObjData);
 #ifdef DEBUG_ENABLED
 	_get_obj().rc = NULL;
-	_get_obj().instance_id = 0;
 #else
 	REF *ref = reinterpret_cast<REF *>(p_resource.get_data());
 	_get_obj().obj = ref->ptr();
@@ -2339,7 +2338,6 @@ Variant::Variant(const Object *p_object) {
 	memnew_placement(_data._mem, ObjData);
 #ifdef DEBUG_ENABLED
 	_get_obj().rc = p_object ? const_cast<Object *>(p_object)->_use_rc() : NULL;
-	_get_obj().instance_id = p_object ? p_object->get_instance_id() : 0;
 #else
 	_get_obj().obj = const_cast<Object *>(p_object);
 #endif

@@ -13,7 +13,7 @@ namespace GodotTools.ProjectEditor
     {
         public ProjectRootElement Root { get; }
 
-        public bool HasUnsavedChanges => Root.HasUnsavedChanges;
+        public bool HasUnsavedChanges { get; set; }
 
         public void Save() => Root.Save();
 
@@ -78,6 +78,8 @@ namespace GodotTools.ProjectEditor
             var root = ProjectRootElement.Open(projectPath);
             Debug.Assert(root != null);
 
+            bool dirty = false;
+
             var oldFolderNormalized = oldFolder.NormalizePath();
             var newFolderNormalized = newFolder.NormalizePath();
             string absOldFolderNormalized = Path.GetFullPath(oldFolderNormalized).NormalizePath();
@@ -88,9 +90,10 @@ namespace GodotTools.ProjectEditor
                 string absPathNormalized = Path.GetFullPath(item.Include).NormalizePath();
                 string absNewIncludeNormalized = absNewFolderNormalized + absPathNormalized.Substring(absOldFolderNormalized.Length);
                 item.Include = absNewIncludeNormalized.RelativeToPath(dir).Replace("/", "\\");
+                dirty = true;
             }
 
-            if (root.HasUnsavedChanges)
+            if (dirty)
                 root.Save();
         }
 
@@ -173,7 +176,7 @@ namespace GodotTools.ProjectEditor
             void AddPropertyIfNotPresent(string name, string condition, string value)
             {
                 if (root.PropertyGroups
-                    .Any(g => (g.Condition == string.Empty || g.Condition.Trim() == condition) &&
+                    .Any(g => (string.IsNullOrEmpty(g.Condition) || g.Condition.Trim() == condition) &&
                               g.Properties
                                   .Any(p => p.Name == name &&
                                             p.Value == value &&
@@ -183,6 +186,7 @@ namespace GodotTools.ProjectEditor
                 }
 
                 root.AddProperty(name, value).Condition = " " + condition + " ";
+                project.HasUnsavedChanges = true;
             }
 
             AddPropertyIfNotPresent(name: "ApiConfiguration",
@@ -224,6 +228,7 @@ namespace GodotTools.ProjectEditor
                         }
 
                         referenceWithHintPath.AddMetadata("HintPath", hintPath);
+                        project.HasUnsavedChanges = true;
                         return;
                     }
 
@@ -232,12 +237,14 @@ namespace GodotTools.ProjectEditor
                     {
                         // Found a Reference item without a HintPath
                         referenceWithoutHintPath.AddMetadata("HintPath", hintPath);
+                        project.HasUnsavedChanges = true;
                         return;
                     }
                 }
 
                 // Found no Reference item at all. Add it.
                 root.AddItem("Reference", referenceName).Condition = " " + condition + " ";
+                project.HasUnsavedChanges = true;
             }
 
             const string coreProjectName = "GodotSharp";
@@ -260,7 +267,7 @@ namespace GodotTools.ProjectEditor
             bool hasGodotProjectGeneratorVersion = false;
             bool foundOldConfiguration = false;
 
-            foreach (var propertyGroup in root.PropertyGroups.Where(g => g.Condition == string.Empty))
+            foreach (var propertyGroup in root.PropertyGroups.Where(g => string.IsNullOrEmpty(g.Condition)))
             {
                 if (!hasGodotProjectGeneratorVersion && propertyGroup.Properties.Any(p => p.Name == "GodotProjectGeneratorVersion"))
                     hasGodotProjectGeneratorVersion = true;
@@ -270,13 +277,15 @@ namespace GodotTools.ProjectEditor
                 {
                     configItem.Value = "Debug";
                     foundOldConfiguration = true;
+                    project.HasUnsavedChanges = true;
                 }
             }
 
             if (!hasGodotProjectGeneratorVersion)
             {
-                root.PropertyGroups.First(g => g.Condition == string.Empty)?
+                root.PropertyGroups.First(g => string.IsNullOrEmpty(g.Condition))?
                     .AddProperty("GodotProjectGeneratorVersion", Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                project.HasUnsavedChanges = true;
             }
 
             if (!foundOldConfiguration)
@@ -300,21 +309,33 @@ namespace GodotTools.ProjectEditor
                     void MigrateConditions(string oldCondition, string newCondition)
                     {
                         foreach (var propertyGroup in root.PropertyGroups.Where(g => g.Condition.Trim() == oldCondition))
+                        {
                             propertyGroup.Condition = " " + newCondition + " ";
+                            project.HasUnsavedChanges = true;
+                        }
 
                         foreach (var propertyGroup in root.PropertyGroups)
                         {
                             foreach (var prop in propertyGroup.Properties.Where(p => p.Condition.Trim() == oldCondition))
+                            {
                                 prop.Condition = " " + newCondition + " ";
+                                project.HasUnsavedChanges = true;
+                            }
                         }
 
                         foreach (var itemGroup in root.ItemGroups.Where(g => g.Condition.Trim() == oldCondition))
+                        {
                             itemGroup.Condition = " " + newCondition + " ";
+                            project.HasUnsavedChanges = true;
+                        }
 
                         foreach (var itemGroup in root.ItemGroups)
                         {
                             foreach (var item in itemGroup.Items.Where(item => item.Condition.Trim() == oldCondition))
+                            {
                                 item.Condition = " " + newCondition + " ";
+                                project.HasUnsavedChanges = true;
+                            }
                         }
                     }
 
@@ -329,6 +350,26 @@ namespace GodotTools.ProjectEditor
                 MigrateConfigurationConditions("Release", "ExportRelease");
                 MigrateConfigurationConditions("Tools", "Debug"); // Must be last
             }
+        }
+
+        public static void EnsureHasNugetNetFrameworkRefAssemblies(MSBuildProject project)
+        {
+            var root = project.Root;
+
+            bool found = root.ItemGroups.Any(g => string.IsNullOrEmpty(g.Condition) && g.Items.Any(
+                item => item.ItemType == "PackageReference" && item.Include == "Microsoft.NETFramework.ReferenceAssemblies"));
+
+            if (found)
+                return;
+
+            var frameworkRefAssembliesItem = root.AddItem("PackageReference", "Microsoft.NETFramework.ReferenceAssemblies");
+
+            // Use metadata (child nodes) instead of attributes for the PackageReference.
+            // This is for compatibility with 3.2, where GodotTools uses an old Microsoft.Build.
+            frameworkRefAssembliesItem.AddMetadata("Version", "1.0.0");
+            frameworkRefAssembliesItem.AddMetadata("PrivateAssets", "All");
+
+            project.HasUnsavedChanges = true;
         }
     }
 }

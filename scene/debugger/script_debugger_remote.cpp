@@ -682,15 +682,6 @@ void ScriptDebuggerRemote::_send_object_id(ObjectID p_id) {
 
 		RES res = var;
 
-		if (var.get_type() == Variant::OBJECT && var.is_ref()) {
-			REF r = var;
-			if (r.is_valid()) {
-				res = *r;
-			} else {
-				res = RES();
-			}
-		}
-
 		Array prop;
 		prop.push_back(pi.name);
 		prop.push_back(pi.type);
@@ -1150,7 +1141,7 @@ void ScriptDebuggerRemote::_print_handler(void *p_this, const String &p_string, 
 	String s = p_string;
 	int allowed_chars = MIN(MAX(sdr->max_cps - sdr->char_count, 0), s.length());
 
-	if (allowed_chars == 0)
+	if (allowed_chars == 0 && s.length() > 0)
 		return;
 
 	if (allowed_chars < s.length()) {

@@ -2099,7 +2099,11 @@ static void _find_identifiers_in_base(const GDScriptCompletionContext &p_context
 
 				if (!p_only_functions) {
 					List<PropertyInfo> members;
-					p_base.value.get_property_list(&members);
+					if (p_base.value.get_type() != Variant::NIL) {
+						p_base.value.get_property_list(&members);
+					} else {
+						tmp.get_property_list(&members);
+					}
 
 					for (List<PropertyInfo>::Element *E = members.front(); E; E = E->next()) {
 						if (String(E->get().name).find("/") == -1) {
@@ -2151,7 +2155,7 @@ static void _find_identifiers(const GDScriptCompletionContext &p_context, bool p
 	}
 
 	const GDScriptParser::ClassNode *clss = p_context._class;
-	bool _static = !p_context.function || p_context.function->_static;
+	bool _static = p_context.function && p_context.function->_static;
 
 	while (clss) {
 		GDScriptCompletionContext c = p_context;
@@ -3498,6 +3502,17 @@ Error GDScriptLanguage::lookup_code(const String &p_code, const String &p_symbol
 			GDScriptParser::DataType base_type = context._class->base_type;
 
 			if (_lookup_symbol_from_base(base_type, p_symbol, true, r_result) == OK) {
+				return OK;
+			}
+		} break;
+		case GDScriptParser::COMPLETION_TYPE_HINT: {
+
+			GDScriptParser::DataType base_type = context._class->base_type;
+			base_type.has_type = true;
+			base_type.kind = GDScriptParser::DataType::CLASS;
+			base_type.class_type = const_cast<GDScriptParser::ClassNode *>(context._class);
+
+			if (_lookup_symbol_from_base(base_type, p_symbol, false, r_result) == OK) {
 				return OK;
 			}
 		} break;
