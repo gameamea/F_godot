@@ -41,7 +41,25 @@
 			<return type="void">
 			</return>
 			<description>
-				Erases the [LineEdit] text.
+				Erases the [LineEdit]'s [member text].
+			</description>
+		</method>
+		<method name="delete_char_at_cursor">
+			<return type="void">
+			</return>
+			<description>
+				Deletes one character at the cursor's current position (equivalent to pressing the [code]Delete[/code] key).
+			</description>
+		</method>
+		<method name="delete_text">
+			<return type="void">
+			</return>
+			<argument index="0" name="from_column" type="int">
+			</argument>
+			<argument index="1" name="to_column" type="int">
+			</argument>
+			<description>
+				Deletes a section of the [member text] going from position [code]from_column[/code] to [code]to_column[/code]. Both parameters should be within the text's length.
 			</description>
 		</method>
 		<method name="deselect">
@@ -146,6 +164,9 @@
 		<member name="text" type="String" setter="set_text" getter="get_text" default="&quot;&quot;">
 			String value of the [LineEdit].
 			[b]Note:[/b] Changing text using this property won't emit the [signal text_changed] signal.
+		</member>
+		<member name="virtual_keyboard_enabled" type="bool" setter="set_virtual_keyboard_enabled" getter="is_virtual_keyboard_enabled" default="true">
+			If [code]true[/code], the native virtual keyboard is shown when focused on platforms that support it.
 		</member>
 	</members>
 	<signals>

@@ -1864,7 +1864,7 @@ MonoObject *CSharpInstance::_internal_new_managed() {
 
 		bool die = _unreference_owner_unsafe();
 		// Not ok for the owner to die here. If there is a situation where this can happen, it will be considered a bug.
-		CRASH_COND(die == true);
+		CRASH_COND(die);
 
 		owner = NULL;
 
@@ -2203,7 +2203,7 @@ CSharpInstance::~CSharpInstance() {
 		// Unreference the owner here, before the new "instance binding" references it.
 		// Otherwise, the unsafe reference debug checks will incorrectly detect a bug.
 		bool die = _unreference_owner_unsafe();
-		CRASH_COND(die == true); // `owner_keep_alive` holds a reference, so it can't die
+		CRASH_COND(die); // `owner_keep_alive` holds a reference, so it can't die
 
 		void *data = owner->get_script_instance_binding(CSharpLanguage::get_singleton()->get_language_index());
 		CRASH_COND(data == NULL);
@@ -2629,7 +2629,9 @@ bool CSharpScript::_get_member_export(IMonoClassMember *p_member, bool p_inspect
 		return true;
 	}
 
+#ifdef TOOLS_ENABLED
 	MonoObject *attr = p_member->get_attribute(CACHED_CLASS(ExportAttribute));
+#endif
 
 	PropertyHint hint = PROPERTY_HINT_NONE;
 	String hint_string;
@@ -3013,7 +3015,7 @@ CSharpInstance *CSharpScript::_create_instance(const Variant **p_args, int p_arg
 
 		bool die = instance->_unreference_owner_unsafe();
 		// Not ok for the owner to die here. If there is a situation where this can happen, it will be considered a bug.
-		CRASH_COND(die == true);
+		CRASH_COND(die);
 
 		p_owner->set_script_instance(NULL);
 		r_error.error = Variant::CallError::CALL_ERROR_INSTANCE_IS_NULL;

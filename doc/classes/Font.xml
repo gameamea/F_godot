@@ -26,6 +26,7 @@
 			</argument>
 			<description>
 				Draw [code]string[/code] into a canvas item using the font at a given position, with [code]modulate[/code] color, and optionally clipping the width. [code]position[/code] specifies the baseline, not the top. To draw from the top, [i]ascent[/i] must be added to the Y axis.
+				See also [method CanvasItem.draw_string].
 			</description>
 		</method>
 		<method name="draw_char" qualifiers="const">
@@ -52,6 +53,17 @@
 			</return>
 			<description>
 				Returns the font ascent (number of pixels above the baseline).
+			</description>
+		</method>
+		<method name="get_char_size" qualifiers="const">
+			<return type="Vector2">
+			</return>
+			<argument index="0" name="char" type="int">
+			</argument>
+			<argument index="1" name="next" type="int" default="0">
+			</argument>
+			<description>
+				Returns the size of a character, optionally taking kerning into account if the next character is provided.
 			</description>
 		</method>
 		<method name="get_descent" qualifiers="const">

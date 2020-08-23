@@ -4,7 +4,7 @@
 		Built-in string class.
 	</brief_description>
 	<description>
-		This is the built-in string class (and the one used by GDScript). It supports Unicode and provides all necessary means for string handling. Strings are reference counted and use a copy-on-write approach, so passing them around is cheap in resources.
+		This is the built-in string class (and the one used by GDScript). It supports Unicode and provides all necessary means for string handling. Strings are reference-counted and use a copy-on-write approach, so passing them around is cheap in resources.
 	</description>
 	<tutorials>
 		<link>https://docs.godotengine.org/en/latest/getting_started/scripting/gdscript/gdscript_format_string.html</link>
@@ -253,14 +253,15 @@
 			<return type="String">
 			</return>
 			<description>
-				Returns a copy of the string with escaped characters replaced by their meanings according to the C language standard.
+				Returns a copy of the string with escaped characters replaced by their meanings. Supported escape sequences are [code]\'[/code], [code]\"[/code], [code]\?[/code], [code]\\[/code], [code]\a[/code], [code]\b[/code], [code]\f[/code], [code]\n[/code], [code]\r[/code], [code]\t[/code], [code]\v[/code].
+				[b]Note:[/b] Unlike the GDScript parser, this method doesn't support the [code]\uXXXX[/code] escape sequence.
 			</description>
 		</method>
 		<method name="capitalize">
 			<return type="String">
 			</return>
 			<description>
-				Changes the case of some letters. Replaces underscores with spaces, converts all letters to lowercase, then capitalizes first and every letter following the space character. For [code]capitalize camelCase mixed_with_underscores[/code], it will return [code]Capitalize Camelcase Mixed With Underscores[/code].
+				Changes the case of some letters. Replaces underscores with spaces, adds spaces before in-word uppercase characters, converts all letters to lowercase, then capitalizes the first letter and every letter following a space character. For [code]capitalize camelCase mixed_with_underscores[/code], it will return [code]Capitalize Camel Case Mixed With Underscores[/code].
 			</description>
 		</method>
 		<method name="casecmp_to">
@@ -309,7 +310,7 @@
 			<return type="bool">
 			</return>
 			<description>
-				Returns [code]true[/code] if the string is empty.
+				Returns [code]true[/code] if the length of the string equals [code]0[/code].
 			</description>
 		</method>
 		<method name="ends_with">
@@ -338,7 +339,13 @@
 			<argument index="1" name="from" type="int" default="0">
 			</argument>
 			<description>
-				Finds the first occurrence of a substring. Returns the starting position of the substring or -1 if not found. Optionally, the initial search index can be passed.
+				Finds the first occurrence of a substring. Returns the starting position of the substring or [code]-1[/code] if not found. Optionally, the initial search index can be passed.
+				[b]Note:[/b] If you just want to know whether a string contains a substring, use the [code]in[/code] operator as follows:
+				[codeblock]
+				# Will evaluate to `false`.
+				if "i" in "team":
+				    pass
+				[/codeblock]
 			</description>
 		</method>
 		<method name="find_last">
@@ -347,7 +354,7 @@
 			<argument index="0" name="what" type="String">
 			</argument>
 			<description>
-				Finds the last occurrence of a substring. Returns the starting position of the substring or -1 if not found.
+				Finds the last occurrence of a substring. Returns the starting position of the substring or [code]-1[/code] if not found.
 			</description>
 		</method>
 		<method name="findn">
@@ -358,7 +365,7 @@
 			<argument index="1" name="from" type="int" default="0">
 			</argument>
 			<description>
-				Finds the first occurrence of a substring, ignoring case. Returns the starting position of the substring or -1 if not found. Optionally, the initial search index can be passed.
+				Finds the first occurrence of a substring, ignoring case. Returns the starting position of the substring or [code]-1[/code] if not found. Optionally, the initial search index can be passed.
 			</description>
 		</method>
 		<method name="format">
@@ -810,8 +817,8 @@
 			<argument index="2" name="maxsplit" type="int" default="0">
 			</argument>
 			<description>
-				Splits the string by a [code]delimiter[/code] string and returns an array of the substrings.
-				If [code]maxsplit[/code] is specified, it defines the number of splits to do from the left up to [code]maxsplit[/code]. The default value of 0 means that all items are split.
+				Splits the string by a [code]delimiter[/code] string and returns an array of the substrings. The [code]delimiter[/code] can be of any length.
+				If [code]maxsplit[/code] is specified, it defines the number of splits to do from the left up to [code]maxsplit[/code]. The default value of [code]0[/code] means that all items are split.
 				Example:
 				[codeblock]
 				var some_string = "One,Two,Three,Four"
@@ -820,6 +827,7 @@
 				print(some_array[0]) # Prints "One"
 				print(some_array[1]) # Prints "Two,Three,Four"
 				[/codeblock]
+				If you need to split strings with more complex rules, use the [RegEx] class instead.
 			</description>
 		</method>
 		<method name="split_floats">
@@ -860,7 +868,7 @@
 			<argument index="1" name="len" type="int" default="-1">
 			</argument>
 			<description>
-				Returns part of the string from the position [code]from[/code] with length [code]len[/code]. Argument [code]len[/code] is optional and using -1 will return remaining characters from given position.
+				Returns part of the string from the position [code]from[/code] with length [code]len[/code]. Argument [code]len[/code] is optional and using [code]-1[/code] will return remaining characters from given position.
 			</description>
 		</method>
 		<method name="to_ascii">

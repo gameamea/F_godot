@@ -665,7 +665,7 @@ public:
 			item_mask = 1;
 			scale = 1.0;
 			energy = 1.0;
-			item_shadow_mask = -1;
+			item_shadow_mask = 1;
 			mode = VS::CANVAS_LIGHT_MODE_ADD;
 			texture_cache = NULL;
 			next_ptr = NULL;
@@ -969,6 +969,56 @@ public:
 						for (int j = 1; j < l; j++) {
 							r.expand_to(pp[j]);
 						}
+
+						if (skeleton != RID()) {
+
+							// calculate bone AABBs
+							int bone_count = RasterizerStorage::base_singleton->skeleton_get_bone_count(skeleton);
+
+							Vector<Rect2> bone_aabbs;
+							bone_aabbs.resize(bone_count);
+							Rect2 *bptr = bone_aabbs.ptrw();
+
+							for (int j = 0; j < bone_count; j++) {
+								bptr[j].size = Vector2(-1, -1); //negative means unused
+							}
+							if (l && polygon->bones.size() == l * 4 && polygon->weights.size() == polygon->bones.size()) {
+
+								for (int j = 0; j < l; j++) {
+									Point2 p = pp[j];
+									for (int k = 0; k < 4; k++) {
+										int idx = polygon->bones[j * 4 + k];
+										float w = polygon->weights[j * 4 + k];
+										if (w == 0)
+											continue;
+
+										if (bptr[idx].size.x < 0) {
+											//first
+											bptr[idx] = Rect2(p, Vector2(0.00001, 0.00001));
+										} else {
+											bptr[idx].expand_to(p);
+										}
+									}
+								}
+
+								Rect2 aabb;
+								bool first_bone = true;
+								for (int j = 0; j < bone_count; j++) {
+									Transform2D mtx = RasterizerStorage::base_singleton->skeleton_bone_get_transform_2d(skeleton, j);
+									Rect2 baabb = mtx.xform(bone_aabbs[j]);
+
+									if (first_bone) {
+										aabb = baabb;
+										first_bone = false;
+									} else {
+										aabb = aabb.merge(baabb);
+									}
+								}
+
+								r = r.merge(aabb);
+							}
+						}
+
 					} break;
 					case Item::Command::TYPE_MESH: {
 
@@ -1114,6 +1164,7 @@ public:
 	virtual RasterizerScene *get_scene() = 0;
 
 	virtual void set_boot_image(const Ref<Image> &p_image, const Color &p_color, bool p_scale, bool p_use_filter = true) = 0;
+	virtual void set_shader_time_scale(float p_scale) = 0;
 
 	virtual void initialize() = 0;
 	virtual void begin_frame(double frame_step) = 0;

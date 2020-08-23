@@ -96,6 +96,18 @@ Ref<EditorExportPlatform> EditorExportPreset::get_platform() const {
 	return platform;
 }
 
+void EditorExportPreset::update_files_to_export() {
+	Vector<String> to_remove;
+	for (Set<String>::Element *E = selected_files.front(); E; E = E->next()) {
+		if (!FileAccess::exists(E->get())) {
+			to_remove.push_back(E->get());
+		}
+	}
+	for (int i = 0; i < to_remove.size(); ++i) {
+		selected_files.erase(to_remove[i]);
+	}
+}
+
 Vector<String> EditorExportPreset::get_files_to_export() const {
 
 	Vector<String> files;
@@ -543,8 +555,16 @@ void EditorExportPlugin::add_ios_framework(const String &p_path) {
 	ios_frameworks.push_back(p_path);
 }
 
+void EditorExportPlugin::add_ios_embedded_framework(const String &p_path) {
+	ios_embedded_frameworks.push_back(p_path);
+}
+
 Vector<String> EditorExportPlugin::get_ios_frameworks() const {
 	return ios_frameworks;
+}
+
+Vector<String> EditorExportPlugin::get_ios_embedded_frameworks() const {
+	return ios_embedded_frameworks;
 }
 
 void EditorExportPlugin::add_ios_plist_content(const String &p_plist_content) {
@@ -628,6 +648,7 @@ void EditorExportPlugin::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("add_ios_project_static_lib", "path"), &EditorExportPlugin::add_ios_project_static_lib);
 	ClassDB::bind_method(D_METHOD("add_file", "path", "file", "remap"), &EditorExportPlugin::add_file);
 	ClassDB::bind_method(D_METHOD("add_ios_framework", "path"), &EditorExportPlugin::add_ios_framework);
+	ClassDB::bind_method(D_METHOD("add_ios_embedded_framework", "path"), &EditorExportPlugin::add_ios_embedded_framework);
 	ClassDB::bind_method(D_METHOD("add_ios_plist_content", "plist_content"), &EditorExportPlugin::add_ios_plist_content);
 	ClassDB::bind_method(D_METHOD("add_ios_linker_flags", "flags"), &EditorExportPlugin::add_ios_linker_flags);
 	ClassDB::bind_method(D_METHOD("add_ios_bundle_file", "path"), &EditorExportPlugin::add_ios_bundle_file);
@@ -1382,7 +1403,11 @@ void EditorExport::load_config() {
 			Vector<String> files = config->get_value(section, "export_files");
 
 			for (int i = 0; i < files.size(); i++) {
-				preset->add_export_file(files[i]);
+				if (!FileAccess::exists(files[i])) {
+					preset->remove_export_file(files[i]);
+				} else {
+					preset->add_export_file(files[i]);
+				}
 			}
 		}
 

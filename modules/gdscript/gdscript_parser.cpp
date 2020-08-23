@@ -2755,6 +2755,8 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 #ifdef DEBUG_ENABLED
 
+	pending_newline = -1; // reset for the new block
+
 	NewLineNode *nl = alloc_node<NewLineNode>();
 
 	nl->line = tokenizer->get_token_line();
@@ -3120,6 +3122,22 @@ void GDScriptParser::_parse_block(BlockNode *p_block, bool p_static) {
 
 				IdentifierNode *id = alloc_node<IdentifierNode>();
 				id->name = tokenizer->get_token_identifier();
+#ifdef DEBUG_ENABLED
+				for (int j = 0; j < current_class->variables.size(); j++) {
+					if (current_class->variables[j].identifier == id->name) {
+						_add_warning(GDScriptWarning::SHADOWED_VARIABLE, id->line, id->name, itos(current_class->variables[j].line));
+					}
+				}
+#endif // DEBUG_ENABLED
+
+				BlockNode *check_block = p_block;
+				while (check_block) {
+					if (check_block->variables.has(id->name)) {
+						_set_error("Variable \"" + String(id->name) + "\" already defined in the scope (at line " + itos(check_block->variables[id->name]->line) + ").");
+						return;
+					}
+					check_block = check_block->parent_block;
+				}
 
 				tokenizer->advance();
 
@@ -3556,6 +3574,14 @@ void GDScriptParser::_parse_extends(ClassNode *p_class) {
 		switch (tokenizer->get_token()) {
 
 			case GDScriptTokenizer::TK_IDENTIFIER: {
+
+				completion_type = COMPLETION_EXTENDS;
+				completion_class = current_class;
+				completion_function = current_function;
+				completion_line = tokenizer->get_token_line();
+				completion_block = current_block;
+				completion_ident_is_call = false;
+				completion_found = true;
 
 				StringName identifier = tokenizer->get_token_identifier();
 				p_class->extends_class.push_back(identifier);
@@ -4021,6 +4047,9 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 
 									current_function = function;
 									Node *arg = _parse_and_reduce_expression(p_class, _static);
+									if (!arg) {
+										return;
+									}
 									current_function = NULL;
 									cparent->arguments.push_back(arg);
 
@@ -5183,6 +5212,7 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 				int last_assign = -1; // Incremented by 1 right before the assignment.
 				String enum_name;
 				Dictionary enum_dict;
+				int enum_start_line = tokenizer->get_token_line();
 
 				tokenizer->advance();
 				if (tokenizer->is_token_literal(0, true)) {
@@ -5319,6 +5349,7 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 					ConstantNode *cn = alloc_node<ConstantNode>();
 					cn->value = enum_dict;
 					cn->datatype = _type_from_variant(cn->value);
+					cn->line = enum_start_line;
 
 					enum_constant.expression = cn;
 					enum_constant.type = cn->datatype;
@@ -5347,6 +5378,16 @@ void GDScriptParser::_parse_class(ClassNode *p_class) {
 			} break;
 
 			default: {
+
+				if (token == GDScriptTokenizer::TK_IDENTIFIER) {
+					completion_type = COMPLETION_IDENTIFIER;
+					completion_class = current_class;
+					completion_function = current_function;
+					completion_line = tokenizer->get_token_line();
+					completion_block = current_block;
+					completion_ident_is_call = false;
+					completion_found = true;
+				}
 
 				_set_error(String() + "Unexpected token: " + tokenizer->get_token_name(tokenizer->get_token()) + ":" + tokenizer->get_token_identifier());
 				return;
@@ -7044,7 +7085,11 @@ bool GDScriptParser::_get_function_signature(DataType &p_base_type, const String
 	}
 
 	r_default_arg_count = method->get_default_argument_count();
-	r_return_type = _type_from_property(method->get_return_info(), false);
+	if (method->get_name() == "get_script") {
+		r_return_type = DataType(); // Variant for now and let runtime decide.
+	} else {
+		r_return_type = _type_from_property(method->get_return_info(), false);
+	}
 	r_vararg = method->is_vararg();
 
 	for (int i = 0; i < method->get_argument_count(); i++) {
@@ -7253,6 +7298,7 @@ GDScriptParser::DataType GDScriptParser::_reduce_function_call_type(const Operat
 
 			DataType original_type = base_type;
 			bool is_initializer = callee_name == "new";
+			bool is_get_script = p_call->arguments[0]->type == Node::TYPE_SELF && callee_name == "get_script";
 			bool is_static = false;
 			bool valid = false;
 
@@ -7269,6 +7315,14 @@ GDScriptParser::DataType GDScriptParser::_reduce_function_call_type(const Operat
 				return_type.is_meta_type = false;
 
 				valid = true; // There's always an initializer, we can assume this is true
+			}
+
+			if (is_get_script) {
+				// get_script() can be considered a meta-type.
+				return_type.kind = DataType::CLASS;
+				return_type.class_type = static_cast<ClassNode *>(head);
+				return_type.is_meta_type = true;
+				valid = true;
 			}
 
 			if (!valid) {
@@ -7357,8 +7411,8 @@ GDScriptParser::DataType GDScriptParser::_reduce_function_call_type(const Operat
 		} else if (!_is_type_compatible(arg_types[i - arg_diff], par_type, true)) {
 			// Supertypes are acceptable for dynamic compliance
 			if (!_is_type_compatible(par_type, arg_types[i - arg_diff])) {
-				_set_error("At \"" + callee_name + "()\" call, argument " + itos(i - arg_diff + 1) + ". Assigned type (" +
-								   par_type.to_string() + ") doesn't match the function argument's type (" +
+				_set_error("At \"" + callee_name + "()\" call, argument " + itos(i - arg_diff + 1) + ". The passed argument's type (" +
+								   par_type.to_string() + ") doesn't match the function's expected argument type (" +
 								   arg_types[i - arg_diff].to_string() + ").",
 						p_call->line);
 				return DataType();
