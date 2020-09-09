@@ -178,7 +178,7 @@ namespace GodotTools.ProjectEditor
             if (root.AreDefaultCompileItemsEnabled())
             {
                 var excluded = new List<string>();
-                result = GetAllFilesRecursive(Path.GetDirectoryName(projectPath), "*.cs").ToList();
+                result.AddRange(existingFiles);
 
                 foreach (var item in root.Items)
                 {
@@ -188,9 +188,10 @@ namespace GodotTools.ProjectEditor
                     if (item.ItemType != itemType)
                         continue;
 
-                    string normalizedExclude = item.Exclude.NormalizePath();
 
-                    var glob = MSBuildGlob.Parse(normalizedExclude);
+                    string normalizedRemove= item.Remove.NormalizePath();
+
+                    var glob = MSBuildGlob.Parse(normalizedRemove);
 
                     excluded.AddRange(result.Where(includedFile => glob.IsMatch(includedFile)));
                 }
@@ -287,10 +288,19 @@ namespace GodotTools.ProjectEditor
                 "ConsolePause"
             };
 
-            foreach (var config in new[] {"ExportDebug", "ExportRelease", "Debug"})
+            var configNames = new[]
+            {
+                "ExportDebug", "ExportRelease", "Debug",
+                "Tools", "Release" // Include old config names as well in case it's upgrading from 3.2.1 or older
+            };
+
+            foreach (var config in configNames)
             {
                 var group = root.PropertyGroups
-                    .First(g => g.Condition.Trim() == $"'$(Configuration)|$(Platform)' == '{config}|AnyCPU'");
+                    .FirstOrDefault(g => g.Condition.Trim() == $"'$(Configuration)|$(Platform)' == '{config}|AnyCPU'");
+
+                if (group == null)
+                    continue;
 
                 RemoveElements(group.Properties.Where(p => yabaiPropertiesForConfigs.Contains(p.Name)));
 
