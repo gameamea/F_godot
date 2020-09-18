@@ -21,6 +21,7 @@
 	<key>CFBundleShortVersionString</key>
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 	<string>4.0</string>
 	<key>CFBundleSignature</key>
 	<string>godot</string>
@@ -39,6 +40,13 @@
 	<string>godot</string>
 	<key>CFBundleVersion</key>
 	<string>3.2.3</string>
+>>>>>>> upstream/3.2
+=======
+	<string>3.2.4</string>
+	<key>CFBundleSignature</key>
+	<string>godot</string>
+	<key>CFBundleVersion</key>
+	<string>3.2.4</string>
 >>>>>>> upstream/3.2
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Microphone access is required to capture audio.</string>
