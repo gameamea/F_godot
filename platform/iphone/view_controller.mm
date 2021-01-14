@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -33,6 +33,7 @@
 #include "core/project_settings.h"
 #import "godot_view.h"
 #import "godot_view_renderer.h"
+#import "keyboard_input_view.h"
 #import "native_video_view.h"
 #include "os_iphone.h"
 
@@ -40,6 +41,7 @@
 
 @property(strong, nonatomic) GodotViewRenderer *renderer;
 @property(strong, nonatomic) GodotNativeVideoView *videoView;
+@property(strong, nonatomic) GodotKeyboardInputView *keyboardView;
 
 @end
 
@@ -101,6 +103,10 @@
 }
 
 - (void)observeKeyboard {
+	printf("******** setting up keyboard input view\n");
+	self.keyboardView = [GodotKeyboardInputView new];
+	[self.view addSubview:self.keyboardView];
+
 	printf("******** adding observer for keyboard show/hide\n");
 	[[NSNotificationCenter defaultCenter]
 			addObserver:self
@@ -118,7 +124,8 @@
 	[self.videoView stopVideo];
 	self.videoView = nil;
 
-	self.videoView = nil;
+	self.keyboardView = nil;
+
 	self.renderer = nil;
 
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
@@ -209,8 +216,11 @@
 	} else {
 		// Create autoresizing view for video playback.
 		GodotNativeVideoView *videoView = [[GodotNativeVideoView alloc] initWithFrame:self.view.bounds];
-		videoView.autoresizingMask = UIViewAutoresizingFlexibleWidth & UIViewAutoresizingFlexibleHeight;
+		videoView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 		[self.view addSubview:videoView];
+
+		self.videoView = videoView;
+
 		return [self.videoView playVideoAtPath:filePath volume:videoVolume audio:audioTrack subtitle:subtitleTrack];
 	}
 }

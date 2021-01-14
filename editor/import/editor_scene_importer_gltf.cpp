@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -504,6 +504,10 @@ Error EditorSceneImporterGLTF::_parse_accessors(GLTFState &state) {
 
 		if (d.has("byteOffset")) {
 			accessor.byte_offset = d["byteOffset"];
+		}
+
+		if (d.has("normalized")) {
+			accessor.normalized = d["normalized"];
 		}
 
 		if (d.has("max")) {
@@ -1305,12 +1309,14 @@ Error EditorSceneImporterGLTF::_parse_images(GLTFState &state, const String &p_b
 			String uri = d["uri"];
 
 			if (uri.begins_with("data:")) { // Embedded data using base64.
-				// Validate data MIME types and throw an error if it's one we don't know/support.
+				// Validate data MIME types and throw a warning if it's one we don't know/support.
 				if (!uri.begins_with("data:application/octet-stream;base64") &&
 						!uri.begins_with("data:application/gltf-buffer;base64") &&
 						!uri.begins_with("data:image/png;base64") &&
 						!uri.begins_with("data:image/jpeg;base64")) {
-					ERR_PRINT("glTF: Got image data with an unknown URI data type: " + uri);
+					WARN_PRINT(vformat("glTF: Image index '%d' uses an unsupported URI data type: %s. Skipping it.", i, uri));
+					state.images.push_back(Ref<Texture>()); // Placeholder to keep count.
+					continue;
 				}
 				data = _parse_base64_uri(uri);
 				data_ptr = data.ptr();
@@ -1325,27 +1331,37 @@ Error EditorSceneImporterGLTF::_parse_images(GLTFState &state, const String &p_b
 				}
 			} else { // Relative path to an external image file.
 				uri = p_base_path.plus_file(uri).replace("\\", "/"); // Fix for Windows.
-				// The spec says that if mimeType is defined, we should enforce it.
-				// So we should only rely on ResourceLoader::load if mimeType is not defined,
-				// otherwise we should use the same logic as for buffers.
-				if (mimetype == "image/png" || mimetype == "image/jpeg") {
-					// Load data buffer and rely on PNG and JPEG-specific logic below to load the image.
-					// This makes it possible to load a file with a wrong extension but correct MIME type,
-					// e.g. "foo.jpg" containing PNG data and with MIME type "image/png". ResourceLoader would fail.
+				// ResourceLoader will rely on the file extension to use the relevant loader.
+				// The spec says that if mimeType is defined, it should take precedence (e.g.
+				// there could be a `.png` image which is actually JPEG), but there's no easy
+				// API for that in Godot, so we'd have to load as a buffer (i.e. embedded in
+				// the material), so we do this only as fallback.
+				Ref<Texture> texture = ResourceLoader::load(uri);
+				if (texture.is_valid()) {
+					state.images.push_back(texture);
+					continue;
+				} else if (mimetype == "image/png" || mimetype == "image/jpeg") {
+					// Fallback to loading as byte array.
+					// This enables us to support the spec's requirement that we honor mimetype
+					// regardless of file URI.
 					data = FileAccess::get_file_as_array(uri);
-					ERR_FAIL_COND_V_MSG(data.size() == 0, ERR_PARSE_ERROR, "glTF: Couldn't load image file as an array: " + uri);
+					if (data.size() == 0) {
+						WARN_PRINT(vformat("glTF: Image index '%d' couldn't be loaded as a buffer of MIME type '%s' from URI: %s. Skipping it.", i, mimetype, uri));
+						state.images.push_back(Ref<Texture>()); // Placeholder to keep count.
+						continue;
+					}
 					data_ptr = data.ptr();
 					data_size = data.size();
 				} else {
-					// Good old ResourceLoader will rely on file extension.
-					Ref<Texture> texture = ResourceLoader::load(uri);
-					state.images.push_back(texture);
+					WARN_PRINT(vformat("glTF: Image index '%d' couldn't be loaded from URI: %s. Skipping it.", i, uri));
+					state.images.push_back(Ref<Texture>()); // Placeholder to keep count.
 					continue;
 				}
 			}
 		} else if (d.has("bufferView")) {
 			// Handles the third bullet point from the spec (bufferView).
-			ERR_FAIL_COND_V_MSG(mimetype.empty(), ERR_FILE_CORRUPT, "glTF: Image specifies 'bufferView' but no 'mimeType', which is invalid.");
+			ERR_FAIL_COND_V_MSG(mimetype.empty(), ERR_FILE_CORRUPT,
+					vformat("glTF: Image index '%d' specifies 'bufferView' but no 'mimeType', which is invalid.", i));
 
 			const GLTFBufferViewIndex bvi = d["bufferView"];
 
@@ -1382,7 +1398,8 @@ Error EditorSceneImporterGLTF::_parse_images(GLTFState &state, const String &p_b
 			}
 		}
 
-		ERR_FAIL_COND_V_MSG(img.is_null(), ERR_FILE_CORRUPT, "glTF: Couldn't load image with its given mimetype: " + mimetype);
+		ERR_FAIL_COND_V_MSG(img.is_null(), ERR_FILE_CORRUPT,
+				vformat("glTF: Couldn't load image index '%d' with its given mimetype: %s.", i, mimetype));
 
 		Ref<ImageTexture> t;
 		t.instance();

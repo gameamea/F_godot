@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -32,6 +32,7 @@
 #define RASTERIZERSTORAGEGLES3_H
 
 #include "core/self_list.h"
+#include "drivers/gles_common/rasterizer_asserts.h"
 #include "servers/visual/rasterizer.h"
 #include "servers/visual/shader_language.h"
 #include "shader_compiler_gles3.h"
@@ -106,6 +107,10 @@ public:
 
 		bool use_depth_prepass;
 		bool force_vertex_shading;
+
+		// in some cases the legacy render didn't orphan. We will mark these
+		// so the user can switch orphaning off for them.
+		bool should_orphan;
 	} config;
 
 	mutable struct Shaders {
@@ -468,6 +473,12 @@ public:
 			bool uses_modulate;
 			bool uses_color;
 			bool uses_vertex;
+
+			// all these should disable item joining if used in a custom shader
+			bool uses_world_matrix;
+			bool uses_extra_matrix;
+			bool uses_projection_matrix;
+			bool uses_instance_custom;
 
 		} canvas_item;
 
@@ -1391,6 +1402,7 @@ public:
 		bool used_in_frame;
 		VS::ViewportMSAA msaa;
 		bool use_fxaa;
+		bool use_debanding;
 
 		RID texture;
 
@@ -1402,7 +1414,8 @@ public:
 				height(0),
 				used_in_frame(false),
 				msaa(VS::VIEWPORT_MSAA_DISABLED),
-				use_fxaa(false) {
+				use_fxaa(false),
+				use_debanding(false) {
 			exposure.fbo = 0;
 			buffers.fbo = 0;
 			external.fbo = 0;
@@ -1431,6 +1444,7 @@ public:
 	virtual void render_target_clear_used(RID p_render_target);
 	virtual void render_target_set_msaa(RID p_render_target, VS::ViewportMSAA p_msaa);
 	virtual void render_target_set_use_fxaa(RID p_render_target, bool p_fxaa);
+	virtual void render_target_set_use_debanding(RID p_render_target, bool p_debanding);
 
 	/* CANVAS SHADOW */
 
@@ -1496,17 +1510,46 @@ public:
 	virtual String get_video_adapter_name() const;
 	virtual String get_video_adapter_vendor() const;
 
-	void buffer_orphan_and_upload(unsigned int p_buffer_size, unsigned int p_offset, unsigned int p_data_size, const void *p_data, GLenum p_target = GL_ARRAY_BUFFER);
+	void buffer_orphan_and_upload(unsigned int p_buffer_size, unsigned int p_offset, unsigned int p_data_size, const void *p_data, GLenum p_target = GL_ARRAY_BUFFER, GLenum p_usage = GL_DYNAMIC_DRAW, bool p_optional_orphan = false) const;
+	bool safe_buffer_sub_data(unsigned int p_total_buffer_size, GLenum p_target, unsigned int p_offset, unsigned int p_data_size, const void *p_data, unsigned int &r_offset_after) const;
 
 	RasterizerStorageGLES3();
 };
 
+inline bool RasterizerStorageGLES3::safe_buffer_sub_data(unsigned int p_total_buffer_size, GLenum p_target, unsigned int p_offset, unsigned int p_data_size, const void *p_data, unsigned int &r_offset_after) const {
+	r_offset_after = p_offset + p_data_size;
+#ifdef DEBUG_ENABLED
+	// we are trying to write across the edge of the buffer
+	if (r_offset_after > p_total_buffer_size)
+		return false;
+#endif
+	glBufferSubData(p_target, p_offset, p_data_size, p_data);
+	return true;
+}
+
 // standardize the orphan / upload in one place so it can be changed per platform as necessary, and avoid future
 // bugs causing pipeline stalls
-inline void RasterizerStorageGLES3::buffer_orphan_and_upload(unsigned int p_buffer_size, unsigned int p_offset, unsigned int p_data_size, const void *p_data, GLenum p_target) {
+inline void RasterizerStorageGLES3::buffer_orphan_and_upload(unsigned int p_buffer_size, unsigned int p_offset, unsigned int p_data_size, const void *p_data, GLenum p_target, GLenum p_usage, bool p_optional_orphan) const {
 	// Orphan the buffer to avoid CPU/GPU sync points caused by glBufferSubData
 	// Was previously #ifndef GLES_OVER_GL however this causes stalls on desktop mac also (and possibly other)
-	glBufferData(p_target, p_buffer_size, NULL, GL_DYNAMIC_DRAW);
+	if (!p_optional_orphan || (config.should_orphan)) {
+		glBufferData(p_target, p_buffer_size, NULL, p_usage);
+#ifdef RASTERIZER_EXTRA_CHECKS
+		// fill with garbage off the end of the array
+		if (p_buffer_size) {
+			unsigned int start = p_offset + p_data_size;
+			unsigned int end = start + 1024;
+			if (end < p_buffer_size) {
+				uint8_t *garbage = (uint8_t *)alloca(1024);
+				for (int n = 0; n < 1024; n++) {
+					garbage[n] = Math::random(0, 255);
+				}
+				glBufferSubData(p_target, start, 1024, garbage);
+			}
+		}
+#endif
+	}
+	RAST_DEV_DEBUG_ASSERT((p_offset + p_data_size) <= p_buffer_size);
 	glBufferSubData(p_target, p_offset, p_data_size, p_data);
 }
 

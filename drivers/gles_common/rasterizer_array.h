@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -28,7 +28,8 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#pragma once
+#ifndef RASTERIZER_ARRAY_H
+#define RASTERIZER_ARRAY_H
 
 /**
  * Fast single-threaded growable array for POD types.
@@ -275,6 +276,7 @@ public:
 
 	int size() const { return _size; }
 	int max_size() const { return _max_size; }
+	int get_unit_size_bytes() const { return _unit_size_bytes; }
 
 	void free() {
 		if (_list) {
@@ -326,3 +328,5 @@ private:
 	int _unit_size_bytes;
 	int _max_unit_size_bytes;
 };
+
+#endif // RASTERIZER_ARRAY_H

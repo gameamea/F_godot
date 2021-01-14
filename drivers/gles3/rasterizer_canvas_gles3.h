@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -62,8 +62,8 @@ private:
 
 	// low level batch funcs
 	void _batch_upload_buffers();
-	void _batch_render_rects(const Batch &p_batch, RasterizerStorageGLES3::Material *p_material);
-	void _batch_render_polys(const Batch &p_batch, RasterizerStorageGLES3::Material *p_material);
+	void _batch_render_prepare();
+	void _batch_render_generic(const Batch &p_batch, RasterizerStorageGLES3::Material *p_material);
 	void _batch_render_lines(const Batch &p_batch, RasterizerStorageGLES3::Material *p_material, bool p_anti_alias);
 
 	// funcs used from rasterizer_canvas_batcher template

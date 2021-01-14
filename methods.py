@@ -717,7 +717,7 @@ def get_darwin_sdk_version(platform):
         return float(decode_utf8(subprocess.check_output(["xcrun", "--sdk", sdk_name, "--show-sdk-version"]).strip()))
     except (subprocess.CalledProcessError, OSError):
         print("Failed to find SDK version while running xcrun --sdk {} --show-sdk-version.".format(sdk_name))
-        raise
+        return 0.0
 
 
 def detect_darwin_sdk_path(platform, env):
@@ -885,7 +885,7 @@ def show_progress(env):
     try:
         with open(node_count_data["fname"]) as f:
             node_count_data["max"] = int(f.readline())
-    except:
+    except Exception:
         pass
 
     cache_directory = os.environ.get("SCONS_CACHE")

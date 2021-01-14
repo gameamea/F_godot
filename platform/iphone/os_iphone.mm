@@ -5,8 +5,8 @@
 /*                           GODOT ENGINE                                */
 /*                      https://godotengine.org                          */
 /*************************************************************************/
-/* Copyright (c) 2007-2020 Juan Linietsky, Ariel Manzur.                 */
-/* Copyright (c) 2014-2020 Godot Engine contributors (cf. AUTHORS.md).   */
+/* Copyright (c) 2007-2021 Juan Linietsky, Ariel Manzur.                 */
+/* Copyright (c) 2014-2021 Godot Engine contributors (cf. AUTHORS.md).   */
 /*                                                                       */
 /* Permission is hereby granted, free of charge, to any person obtaining */
 /* a copy of this software and associated documentation files (the       */
@@ -50,6 +50,7 @@
 #import "app_delegate.h"
 #import "device_metrics.h"
 #import "godot_view.h"
+#import "keyboard_input_view.h"
 #import "native_video_view.h"
 #import "view_controller.h"
 
@@ -453,11 +454,17 @@ bool OSIPhone::has_virtual_keyboard() const {
 };
 
 void OSIPhone::show_virtual_keyboard(const String &p_existing_text, const Rect2 &p_screen_rect, bool p_multiline, int p_max_input_length, int p_cursor_start, int p_cursor_end) {
-	[AppDelegate.viewController.godotView becomeFirstResponderWithString:p_existing_text];
+	NSString *existingString = [[NSString alloc] initWithUTF8String:p_existing_text.utf8().get_data()];
+
+	[AppDelegate.viewController.keyboardView
+			becomeFirstResponderWithString:existingString
+								 multiline:p_multiline
+							   cursorStart:p_cursor_start
+								 cursorEnd:p_cursor_end];
 };
 
 void OSIPhone::hide_virtual_keyboard() {
-	[AppDelegate.viewController.godotView resignFirstResponder];
+	[AppDelegate.viewController.keyboardView resignFirstResponder];
 }
 
 void OSIPhone::set_virtual_keyboard_height(int p_height) {

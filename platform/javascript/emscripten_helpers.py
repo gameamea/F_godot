@@ -19,3 +19,15 @@ def create_engine_file(env, target, source, externs):
     if env["use_closure_compiler"]:
         return env.BuildJS(target, source, JSEXTERNS=externs)
     return env.Textfile(target, [env.File(s) for s in source])
+
+
+def add_js_libraries(env, libraries):
+    env.Append(JS_LIBS=env.File(libraries))
+
+
+def add_js_pre(env, js_pre):
+    env.Append(JS_PRE=env.File(js_pre))
+
+
+def add_js_externs(env, externs):
+    env.Append(JS_EXTERNS=env.File(externs))
