@@ -37,11 +37,13 @@
 #import "native_video_view.h"
 #include "os_iphone.h"
 
-@interface ViewController ()
+@interface ViewController () <GodotViewDelegate>
 
 @property(strong, nonatomic) GodotViewRenderer *renderer;
 @property(strong, nonatomic) GodotNativeVideoView *videoView;
 @property(strong, nonatomic) GodotKeyboardInputView *keyboardView;
+
+@property(strong, nonatomic) UIView *godotLoadingOverlay;
 
 @end
 
@@ -61,6 +63,7 @@
 	self.view = view;
 
 	view.renderer = self.renderer;
+	view.delegate = self;
 }
 
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
@@ -96,6 +99,7 @@
 	[super viewDidLoad];
 
 	[self observeKeyboard];
+	[self displayLoadingOverlay];
 
 	if (@available(iOS 11.0, *)) {
 		[self setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
@@ -120,6 +124,31 @@
 				 object:nil];
 }
 
+- (void)displayLoadingOverlay {
+	NSBundle *bundle = [NSBundle mainBundle];
+	NSString *storyboardName = @"Launch Screen";
+
+	if ([bundle pathForResource:storyboardName ofType:@"storyboardc"] == nil) {
+		return;
+	}
+
+	UIStoryboard *launchStoryboard = [UIStoryboard storyboardWithName:storyboardName bundle:bundle];
+
+	UIViewController *controller = [launchStoryboard instantiateInitialViewController];
+	self.godotLoadingOverlay = controller.view;
+	self.godotLoadingOverlay.frame = self.view.bounds;
+	self.godotLoadingOverlay.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
+
+	[self.view addSubview:self.godotLoadingOverlay];
+}
+
+- (BOOL)godotViewFinishedSetup:(GodotView *)view {
+	[self.godotLoadingOverlay removeFromSuperview];
+	self.godotLoadingOverlay = nil;
+
+	return YES;
+}
+
 - (void)dealloc {
 	[self.videoView stopVideo];
 	self.videoView = nil;
@@ -127,6 +156,11 @@
 	self.keyboardView = nil;
 
 	self.renderer = nil;
+
+	if (self.godotLoadingOverlay) {
+		[self.godotLoadingOverlay removeFromSuperview];
+		self.godotLoadingOverlay = nil;
+	}
 
 	[[NSNotificationCenter defaultCenter] removeObserver:self];
 }
@@ -224,13 +258,5 @@
 		return [self.videoView playVideoAtPath:filePath volume:videoVolume audio:audioTrack subtitle:subtitleTrack];
 	}
 }
-
-#ifdef GAME_CENTER_ENABLED
-- (void)gameCenterViewControllerDidFinish:(GKGameCenterViewController *)gameCenterViewController {
-	//[gameCenterViewController dismissViewControllerAnimated:YES completion:^{GameCenter::get_singleton()->game_center_closed();}];//version for signaling when overlay is completely gone
-	GameCenter::get_singleton()->game_center_closed();
-	[gameCenterViewController dismissViewControllerAnimated:YES completion:nil];
-}
-#endif
 
 @end

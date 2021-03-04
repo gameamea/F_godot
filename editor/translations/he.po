@@ -18,12 +18,13 @@
 # yariv benj <yariv4400@gmail.com>, 2020.
 # Guy Dadon <guydadon14@gmail.com>, 2020.
 # bruvzg <bruvzg13@gmail.com>, 2020.
+# Omer I.S. <omeritzicschwartz@gmail.com>, 2021.
 msgid ""
 msgstr ""
 "Project-Id-Version: Godot Engine editor\n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2020-12-03 19:28+0000\n"
-"Last-Translator: Ziv D <wizdavid@gmail.com>\n"
+"PO-Revision-Date: 2021-02-21 10:51+0000\n"
+"Last-Translator: Omer I.S. <omeritzicschwartz@gmail.com>\n"
 "Language-Team: Hebrew <https://hosted.weblate.org/projects/godot-engine/"
 "godot/he/>\n"
 "Language: he\n"
@@ -32,7 +33,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=4; plural=(n == 1) ? 0 : ((n == 2) ? 1 : ((n > 10 && "
 "n % 10 == 0) ? 2 : 3));\n"
-"X-Generator: Weblate 4.4-dev\n"
+"X-Generator: Weblate 4.5\n"
 
 #: core/math/expression.cpp modules/gdscript/gdscript_functions.cpp
 #: modules/visual_script/visual_script_builtin_funcs.cpp
@@ -379,9 +380,8 @@ msgid "Anim Insert"
 msgstr "הוסף הנפשה"
 
 #: editor/animation_track_editor.cpp
-#, fuzzy
 msgid "AnimationPlayer can't animate itself, only other players."
-msgstr "נגן הנפשות לא יכול להנפיש את עצמו, רק שחקנים אחרים."
+msgstr "נגן ההנפשות לא יכול להנפיש את עצמו, רק שחקנים אחרים."
 
 #: editor/animation_track_editor.cpp
 msgid "Anim Create & Insert"
@@ -662,7 +662,7 @@ msgstr "בחירת רצועות להעתקה"
 #: editor/plugins/animation_player_editor_plugin.cpp
 #: editor/plugins/script_text_editor.cpp
 #: editor/plugins/sprite_frames_editor_plugin.cpp editor/property_editor.cpp
-#: scene/gui/line_edit.cpp scene/gui/text_edit.cpp
+#: editor/scene_tree_dock.cpp scene/gui/line_edit.cpp scene/gui/text_edit.cpp
 msgid "Copy"
 msgstr "העתקה"
 
@@ -900,9 +900,8 @@ msgid "Connect a Signal to a Method"
 msgstr "שגיאת חיבור"
 
 #: editor/connections_dialog.cpp
-#, fuzzy
 msgid "Edit Connection:"
-msgstr "שגיאת חיבור"
+msgstr "עריכת חיבור:"
 
 #: editor/connections_dialog.cpp
 msgid "Are you sure you want to remove all connections from the \"%s\" signal?"
@@ -1102,7 +1101,7 @@ msgstr "דפדפן משאבים יתומים"
 #: editor/plugins/sprite_frames_editor_plugin.cpp editor/project_export.cpp
 #: editor/project_settings_editor.cpp editor/scene_tree_dock.cpp
 msgid "Delete"
-msgstr "למחוק"
+msgstr "מחיקה"
 
 #: editor/dependency_editor.cpp
 msgid "Owns"
@@ -1194,9 +1193,8 @@ msgid "License"
 msgstr "רישיון"
 
 #: editor/editor_about.cpp
-#, fuzzy
 msgid "Third-party Licenses"
-msgstr "רישיון צד שלישי"
+msgstr "רשיונות צד שלישי"
 
 #: editor/editor_about.cpp
 msgid ""
@@ -1657,9 +1655,8 @@ msgid "Script Editor"
 msgstr "פתיחת עורך סקריפטים"
 
 #: editor/editor_feature_profile.cpp
-#, fuzzy
 msgid "Asset Library"
-msgstr "ייצוא ספריה"
+msgstr "ספריית משאבים"
 
 #: editor/editor_feature_profile.cpp
 msgid "Scene Tree Editing"
@@ -1965,10 +1962,6 @@ msgstr "תצוגה מקדימה:"
 #: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
 msgid "File:"
 msgstr "קובץ:"
-
-#: editor/editor_file_dialog.cpp scene/gui/file_dialog.cpp
-msgid "Must use a valid extension."
-msgstr "יש להשתמש בסיומת תקנית."
 
 #: editor/editor_file_system.cpp
 msgid "ScanSources"
@@ -2392,6 +2385,10 @@ msgid "There is no defined scene to run."
 msgstr "אין סצנה מוגדרת להרצה."
 
 #: editor/editor_node.cpp
+msgid "Save scene before running..."
+msgstr ""
+
+#: editor/editor_node.cpp
 msgid "Could not start subprocess!"
 msgstr "לא ניתן להפעיל תהליך משנה!"
 
@@ -2434,18 +2431,6 @@ msgstr "דרוש מפרק שורש כדי לשמור את הסצינה."
 #: editor/editor_node.cpp
 msgid "Save Scene As..."
 msgstr "שמירת סצנה בשם…"
-
-#: editor/editor_node.cpp
-msgid "No"
-msgstr "לא"
-
-#: editor/editor_node.cpp
-msgid "Yes"
-msgstr "כן"
-
-#: editor/editor_node.cpp
-msgid "This scene has never been saved. Save before running?"
-msgstr "סצנה זאת מעולם לא נשמרה. לשמור לפני ההרצה?"
 
 #: editor/editor_node.cpp editor/scene_tree_dock.cpp
 msgid "This operation can't be done without a scene."
@@ -2496,6 +2481,10 @@ msgid "Quit"
 msgstr "יציאה"
 
 #: editor/editor_node.cpp
+msgid "Yes"
+msgstr "כן"
+
+#: editor/editor_node.cpp
 msgid "Exit the editor?"
 msgstr "לצאת מהעורך?"
 
@@ -2540,7 +2529,8 @@ msgid "Unable to enable addon plugin at: '%s' parsing of config failed."
 msgstr "לא ניתן לפתוח את תוסף ההרחבות בנתיב: '%s' פענוח ההגדרות נכשל."
 
 #: editor/editor_node.cpp
-msgid "Unable to find script field for addon plugin at: 'res://addons/%s'."
+#, fuzzy
+msgid "Unable to find script field for addon plugin at: '%s'."
 msgstr "לא ניתן למצוא שדה סקריפט עבור תוסף הרחבה בנתיב 'res://addons/%s'."
 
 #: editor/editor_node.cpp
@@ -2960,14 +2950,6 @@ msgid "Help"
 msgstr "עזרה"
 
 #: editor/editor_node.cpp editor/plugins/script_editor_plugin.cpp
-#: editor/plugins/script_text_editor.cpp
-#: editor/plugins/shader_editor_plugin.cpp editor/plugins/text_editor.cpp
-#: editor/plugins/visual_shader_editor_plugin.cpp editor/project_manager.cpp
-#: editor/project_settings_editor.cpp editor/settings_config_dialog.cpp
-msgid "Search"
-msgstr "חיפוש"
-
-#: editor/editor_node.cpp editor/plugins/script_editor_plugin.cpp
 #: editor/plugins/shader_editor_plugin.cpp
 msgid "Online Docs"
 msgstr "מסמכים מקוונים"
@@ -3126,6 +3108,24 @@ msgstr "מיזוג עם נוכחיים"
 #: editor/editor_node.cpp
 msgid "Open & Run a Script"
 msgstr "פתיחה והרצה של סקריפט"
+
+#: editor/editor_node.cpp
+msgid ""
+"The following files are newer on disk.\n"
+"What action should be taken?"
+msgstr ""
+"הקבצים הבאים הם חדשים בכונן.\n"
+"באילו פעולות לנקוט?"
+
+#: editor/editor_node.cpp editor/plugins/script_editor_plugin.cpp
+#: editor/plugins/shader_editor_plugin.cpp
+msgid "Reload"
+msgstr "רענון"
+
+#: editor/editor_node.cpp editor/plugins/script_editor_plugin.cpp
+#: editor/plugins/shader_editor_plugin.cpp
+msgid "Resave"
+msgstr "שמירה מחדש"
 
 #: editor/editor_node.cpp
 msgid "New Inherited"
@@ -3336,7 +3336,7 @@ msgstr ""
 #: editor/plugins/script_text_editor.cpp
 #: editor/plugins/sprite_frames_editor_plugin.cpp
 #: editor/plugins/tile_map_editor_plugin.cpp editor/property_editor.cpp
-#: scene/gui/line_edit.cpp scene/gui/text_edit.cpp
+#: editor/scene_tree_dock.cpp scene/gui/line_edit.cpp scene/gui/text_edit.cpp
 msgid "Paste"
 msgstr "הדבקה"
 
@@ -5038,7 +5038,8 @@ msgid "Got:"
 msgstr "התקבל:"
 
 #: editor/plugins/asset_library_editor_plugin.cpp
-msgid "Failed sha256 hash check"
+#, fuzzy
+msgid "Failed SHA-256 hash check"
 msgstr "בדיקת האש sha256 נכשלה"
 
 #: editor/plugins/asset_library_editor_plugin.cpp
@@ -5171,10 +5172,10 @@ msgid "Assets ZIP File"
 msgstr "קובץ ZIP של נכסים"
 
 #: editor/plugins/baked_lightmap_editor_plugin.cpp
+#, fuzzy
 msgid ""
 "Can't determine a save path for lightmap images.\n"
-"Save your scene (for images to be saved in the same dir), or pick a save "
-"path from the BakedLightmap properties."
+"Save your scene and try again."
 msgstr ""
 "אין אפשרות לקבוע נתיב שמירה עבור תמונות lightmap.\n"
 "שמור/י את הסצינה שלך (כדי שתמונות יישמרו באותה תיקייה), או בחר/י נתיב שמירה "
@@ -5191,8 +5192,28 @@ msgid "Failed creating lightmap images, make sure path is writable."
 msgstr "יצירת תמונות lightmap נכשלה, ודא/י שהנתיב ניתן לכתיבה."
 
 #: editor/plugins/baked_lightmap_editor_plugin.cpp
+msgid "Failed determining lightmap size. Maximum lightmap size too small?"
+msgstr ""
+
+#: editor/plugins/baked_lightmap_editor_plugin.cpp
+msgid ""
+"Some mesh is invalid. Make sure the UV2 channel values are contained within "
+"the [0.0,1.0] square region."
+msgstr ""
+
+#: editor/plugins/baked_lightmap_editor_plugin.cpp
+msgid ""
+"Godot editor was built without ray tracing support, lightmaps can't be baked."
+msgstr ""
+
+#: editor/plugins/baked_lightmap_editor_plugin.cpp
 msgid "Bake Lightmaps"
 msgstr "אפיית Lightmaps"
+
+#: editor/plugins/baked_lightmap_editor_plugin.cpp
+#, fuzzy
+msgid "Select lightmap bake file:"
+msgstr "בחירת קובץ תבנית"
 
 #: editor/plugins/camera_editor_plugin.cpp
 #: editor/plugins/spatial_editor_plugin.cpp
@@ -5486,9 +5507,8 @@ msgstr ""
 #: editor/plugins/canvas_item_editor_plugin.cpp
 #: editor/plugins/texture_region_editor_plugin.cpp
 #: editor/plugins/tile_set_editor_plugin.cpp scene/gui/graph_edit.cpp
-#, fuzzy
 msgid "Zoom Reset"
-msgstr "להתרחק"
+msgstr "איפוס התקריב"
 
 #: editor/plugins/canvas_item_editor_plugin.cpp
 #: editor/plugins/spatial_editor_plugin.cpp
@@ -6306,6 +6326,11 @@ msgid "Can only set point into a ParticlesMaterial process material"
 msgstr ""
 
 #: editor/plugins/particles_2d_editor_plugin.cpp
+#, fuzzy
+msgid "Convert to CPUParticles2D"
+msgstr "המרה לאותיות גדולות"
+
+#: editor/plugins/particles_2d_editor_plugin.cpp
 #: editor/plugins/particles_editor_plugin.cpp
 msgid "Generation Time (sec):"
 msgstr ""
@@ -6364,10 +6389,6 @@ msgstr ""
 
 #: editor/plugins/particles_editor_plugin.cpp
 msgid "Generate Visibility AABB"
-msgstr ""
-
-#: editor/plugins/particles_editor_plugin.cpp
-msgid "Generate AABB"
 msgstr ""
 
 #: editor/plugins/path_2d_editor_plugin.cpp
@@ -6974,6 +6995,14 @@ msgstr "סגירת מסמכים"
 msgid "Run"
 msgstr "הרצה"
 
+#: editor/plugins/script_editor_plugin.cpp
+#: editor/plugins/script_text_editor.cpp
+#: editor/plugins/shader_editor_plugin.cpp editor/plugins/text_editor.cpp
+#: editor/plugins/visual_shader_editor_plugin.cpp editor/project_manager.cpp
+#: editor/project_settings_editor.cpp editor/settings_config_dialog.cpp
+msgid "Search"
+msgstr "חיפוש"
+
 #: editor/plugins/script_editor_plugin.cpp editor/script_editor_debugger.cpp
 msgid "Step Into"
 msgstr "לצעוד לתוך"
@@ -7028,16 +7057,6 @@ msgid ""
 msgstr ""
 "הקבצים הבאים הם חדשים בכונן.\n"
 "באילו פעולות לנקוט?:"
-
-#: editor/plugins/script_editor_plugin.cpp
-#: editor/plugins/shader_editor_plugin.cpp
-msgid "Reload"
-msgstr "רענון"
-
-#: editor/plugins/script_editor_plugin.cpp
-#: editor/plugins/shader_editor_plugin.cpp
-msgid "Resave"
-msgstr "שמירה מחדש"
 
 #: editor/plugins/script_editor_plugin.cpp editor/script_editor_debugger.cpp
 msgid "Debugger"
@@ -7137,8 +7156,8 @@ msgstr "מחיקת נקודות"
 msgid "Go To"
 msgstr ""
 
-#: editor/plugins/script_text_editor.cpp scene/gui/line_edit.cpp
-#: scene/gui/text_edit.cpp
+#: editor/plugins/script_text_editor.cpp editor/scene_tree_dock.cpp
+#: scene/gui/line_edit.cpp scene/gui/text_edit.cpp
 msgid "Cut"
 msgstr "גזירה"
 
@@ -7265,13 +7284,12 @@ msgid "Go to Previous Breakpoint"
 msgstr "מעבר לנקודת העצירה הקודמת"
 
 #: editor/plugins/shader_editor_plugin.cpp
-#, fuzzy
 msgid ""
 "This shader has been modified on on disk.\n"
 "What action should be taken?"
 msgstr ""
 "הקבצים הבאים הם חדשים בכונן.\n"
-"באילו פעולות לנקוט?:"
+"באילו פעולות לנקוט?"
 
 #: editor/plugins/shader_editor_plugin.cpp
 msgid "Shader"
@@ -7376,6 +7394,10 @@ msgstr ""
 
 #: editor/plugins/spatial_editor_plugin.cpp
 msgid "Yaw"
+msgstr ""
+
+#: editor/plugins/spatial_editor_plugin.cpp
+msgid "Size"
 msgstr ""
 
 #: editor/plugins/spatial_editor_plugin.cpp
@@ -10040,6 +10062,13 @@ msgid "Projects"
 msgstr "מיזם"
 
 #: editor/project_manager.cpp
+#, fuzzy
+msgid "Loading, please wait..."
+msgstr ""
+"הקבצים נסרקים,\n"
+"נא להמתין…"
+
+#: editor/project_manager.cpp
 msgid "Last Modified"
 msgstr ""
 
@@ -10669,6 +10698,16 @@ msgid "Instance Child Scene"
 msgstr "יצירת מופע לסצנה הצאצאית"
 
 #: editor/scene_tree_dock.cpp
+#, fuzzy
+msgid "Can't paste root node into the same scene."
+msgstr "לא יכול לפעול על מפרקים מסצנה זרה!"
+
+#: editor/scene_tree_dock.cpp
+#, fuzzy
+msgid "Paste Node(s)"
+msgstr "הדבקת מפרקים"
+
+#: editor/scene_tree_dock.cpp
 msgid "Detach Script"
 msgstr "ניתוק סקריפט"
 
@@ -10790,6 +10829,11 @@ msgstr "לא יכול לפעול על מפרקים שהסצנה הנוכחית �
 #: editor/scene_tree_dock.cpp
 msgid "Attach Script"
 msgstr "חיבור סקריפט"
+
+#: editor/scene_tree_dock.cpp
+#, fuzzy
+msgid "Cut Node(s)"
+msgstr "גזירת מפרקים"
 
 #: editor/scene_tree_dock.cpp
 msgid "Remove Node(s)"
@@ -11592,6 +11636,38 @@ msgstr "סינון רשתות"
 msgid "Give a MeshLibrary resource to this GridMap to use its meshes."
 msgstr "יש לחבר משאב MeshLibrary ל- GridMap הזה כדי להשתמש ברשתות שלו."
 
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+msgid "Begin Bake"
+msgstr ""
+
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+msgid "Preparing data structures"
+msgstr ""
+
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+msgid "Generate buffers"
+msgstr ""
+
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+#, fuzzy
+msgid "Direct lighting"
+msgstr "כיוונים"
+
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+#, fuzzy
+msgid "Indirect lighting"
+msgstr "הזחה מימין"
+
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+#, fuzzy
+msgid "Post processing"
+msgstr "גרסה נוכחית:"
+
+#: modules/lightmapper_cpu/lightmapper_cpu.cpp
+#, fuzzy
+msgid "Plotting lightmaps"
+msgstr "מדפיס תאורות:"
+
 #: modules/mono/csharp_script.cpp
 msgid "Class name can't be a reserved keyword"
 msgstr "שם מחלקה לא יכול להיות מילת מפתח שמורה"
@@ -12095,12 +12171,14 @@ msgid "Select device from the list"
 msgstr "נא לבחור התקן מהרשימה"
 
 #: platform/android/export/export.cpp
-msgid "ADB executable not configured in the Editor Settings."
-msgstr "קובץ ההפעלה של ADB לא נקבע בהגדרות העורך."
+msgid "Unable to find the 'apksigner' tool."
+msgstr ""
 
 #: platform/android/export/export.cpp
-msgid "OpenJDK jarsigner not configured in the Editor Settings."
-msgstr "OpenJDK jarsigner לא נקבע בהגדרות העורך."
+msgid ""
+"Android build template not installed in the project. Install it from the "
+"Project menu."
+msgstr "תבנית בנייה לאנדרואיד לא מותקנת בפרוייקט. ההתקנה היא מתפריט המיזם."
 
 #: platform/android/export/export.cpp
 msgid "Debug keystore not configured in the Editor Settings nor in the preset."
@@ -12111,12 +12189,14 @@ msgid "Release keystore incorrectly configured in the export preset."
 msgstr "מפתח גירסת שיחרור נקבע באופן שגוי בהגדרות הייצוא."
 
 #: platform/android/export/export.cpp
-msgid "Custom build requires a valid Android SDK path in Editor Settings."
+#, fuzzy
+msgid "A valid Android SDK path is required in Editor Settings."
 msgstr ""
-"בנייה מותאמת אישית דורשת נתיב חוקי של ערכת פיתוח לאנדרואיד בהגדרות העורך."
+"נתיב לא חוקי לערכת פיתוח אנדרואיד עבור בנייה מותאמת אישית בהגדרות העורך."
 
 #: platform/android/export/export.cpp
-msgid "Invalid Android SDK path for custom build in Editor Settings."
+#, fuzzy
+msgid "Invalid Android SDK path in Editor Settings."
 msgstr ""
 "נתיב לא חוקי לערכת פיתוח אנדרואיד עבור בנייה מותאמת אישית בהגדרות העורך."
 
@@ -12125,10 +12205,22 @@ msgid "Missing 'platform-tools' directory!"
 msgstr ""
 
 #: platform/android/export/export.cpp
-msgid ""
-"Android build template not installed in the project. Install it from the "
-"Project menu."
-msgstr "תבנית בנייה לאנדרואיד לא מותקנת בפרוייקט. ההתקנה היא מתפריט המיזם."
+msgid "Unable to find Android SDK platform-tools' adb command."
+msgstr ""
+
+#: platform/android/export/export.cpp
+#, fuzzy
+msgid "Please check in the Android SDK directory specified in Editor Settings."
+msgstr ""
+"נתיב לא חוקי לערכת פיתוח אנדרואיד עבור בנייה מותאמת אישית בהגדרות העורך."
+
+#: platform/android/export/export.cpp
+msgid "Missing 'build-tools' directory!"
+msgstr ""
+
+#: platform/android/export/export.cpp
+msgid "Unable to find Android SDK build-tools' apksigner command."
+msgstr ""
 
 #: platform/android/export/export.cpp
 msgid "Invalid public key for APK expansion."
@@ -12569,28 +12661,32 @@ msgid "ARVROrigin requires an ARVRCamera child node."
 msgstr "ARVROrigin דורש צאצא מסוג ARVRCamera."
 
 #: scene/3d/baked_lightmap.cpp
-msgid "%d%%"
-msgstr "%d%%"
+msgid "Finding meshes and lights"
+msgstr ""
 
 #: scene/3d/baked_lightmap.cpp
-msgid "(Time Left: %d:%02d s)"
-msgstr "(זמן שנותר: %d:%02d שנ׳)"
+#, fuzzy
+msgid "Preparing geometry (%d/%d)"
+msgstr "ניתוח גיאומטרי..."
 
 #: scene/3d/baked_lightmap.cpp
-msgid "Plotting Meshes: "
-msgstr "מדפיס רשתות: "
+#, fuzzy
+msgid "Preparing environment"
+msgstr "צפייה בסביבה"
 
 #: scene/3d/baked_lightmap.cpp
-msgid "Plotting Lights:"
-msgstr "מדפיס תאורות:"
-
-#: scene/3d/baked_lightmap.cpp scene/3d/gi_probe.cpp
-msgid "Finishing Plot"
-msgstr "מסיים הדפסה"
+#, fuzzy
+msgid "Generating capture"
+msgstr "נוצרות מפות תאורה"
 
 #: scene/3d/baked_lightmap.cpp
-msgid "Lighting Meshes: "
-msgstr "רשתות תאורה: "
+#, fuzzy
+msgid "Saving lightmaps"
+msgstr "נוצרות מפות תאורה"
+
+#: scene/3d/baked_lightmap.cpp
+msgid "Done"
+msgstr "בוצע"
 
 #: scene/3d/collision_object.cpp
 msgid ""
@@ -12658,6 +12754,10 @@ msgstr ""
 #: scene/3d/gi_probe.cpp
 msgid "Plotting Meshes"
 msgstr "הדפסת רשתות"
+
+#: scene/3d/gi_probe.cpp
+msgid "Finishing Plot"
+msgstr "מסיים הדפסה"
 
 #: scene/3d/gi_probe.cpp
 msgid ""
@@ -12906,6 +13006,10 @@ msgstr "אזהרה!"
 msgid "Please Confirm..."
 msgstr "נא לאשר…"
 
+#: scene/gui/file_dialog.cpp
+msgid "Must use a valid extension."
+msgstr "יש להשתמש בסיומת תקנית."
+
 #: scene/gui/graph_edit.cpp
 #, fuzzy
 msgid "Enable grid minimap."
@@ -12962,6 +13066,12 @@ msgid "Viewport size must be greater than 0 to render anything."
 msgstr "גודל חלון התצוגה חייב להיות גדול מ-0 על מנת להציג משהו."
 
 #: scene/resources/visual_shader_nodes.cpp
+msgid ""
+"The sampler port is connected but not used. Consider changing the source to "
+"'SamplerPort'."
+msgstr ""
+
+#: scene/resources/visual_shader_nodes.cpp
 msgid "Invalid source for preview."
 msgstr "מקור לא תקין לתצוגה מקדימה."
 
@@ -12988,6 +13098,34 @@ msgstr "ניתן להקצות שינויים רק בפונקצית vertex."
 #: servers/visual/shader_language.cpp
 msgid "Constants cannot be modified."
 msgstr "אי אפשר לשנות קבועים."
+
+#~ msgid "No"
+#~ msgstr "לא"
+
+#~ msgid "This scene has never been saved. Save before running?"
+#~ msgstr "סצנה זאת מעולם לא נשמרה. לשמור לפני ההרצה?"
+
+#~ msgid "ADB executable not configured in the Editor Settings."
+#~ msgstr "קובץ ההפעלה של ADB לא נקבע בהגדרות העורך."
+
+#~ msgid "OpenJDK jarsigner not configured in the Editor Settings."
+#~ msgstr "OpenJDK jarsigner לא נקבע בהגדרות העורך."
+
+#~ msgid "Custom build requires a valid Android SDK path in Editor Settings."
+#~ msgstr ""
+#~ "בנייה מותאמת אישית דורשת נתיב חוקי של ערכת פיתוח לאנדרואיד בהגדרות העורך."
+
+#~ msgid "%d%%"
+#~ msgstr "%d%%"
+
+#~ msgid "(Time Left: %d:%02d s)"
+#~ msgstr "(זמן שנותר: %d:%02d שנ׳)"
+
+#~ msgid "Plotting Meshes: "
+#~ msgstr "מדפיס רשתות: "
+
+#~ msgid "Lighting Meshes: "
+#~ msgstr "רשתות תאורה: "
 
 #, fuzzy
 #~ msgid "Search complete"
@@ -13173,9 +13311,6 @@ msgstr "אי אפשר לשנות קבועים."
 
 #~ msgid "Failed to save solution."
 #~ msgstr "שמירת הפתרון נכשלה."
-
-#~ msgid "Done"
-#~ msgstr "בוצע"
 
 #~ msgid "Failed to create C# project."
 #~ msgstr "יצירת מיזם C#‎ נכשלה."

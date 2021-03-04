@@ -440,10 +440,10 @@ void StyleBoxFlat::set_corner_radius_all(int radius) {
 
 	emit_changed();
 }
-void StyleBoxFlat::set_corner_radius_individual(const int radius_top_left, const int radius_top_right, const int radius_botton_right, const int radius_bottom_left) {
+void StyleBoxFlat::set_corner_radius_individual(const int radius_top_left, const int radius_top_right, const int radius_bottom_right, const int radius_bottom_left) {
 	corner_radius[0] = radius_top_left;
 	corner_radius[1] = radius_top_right;
-	corner_radius[2] = radius_botton_right;
+	corner_radius[2] = radius_bottom_right;
 	corner_radius[3] = radius_bottom_left;
 
 	emit_changed();
@@ -1041,9 +1041,19 @@ void StyleBoxLine::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "thickness", PROPERTY_HINT_RANGE, "0,10"), "set_thickness", "get_thickness");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "vertical"), "set_vertical", "is_vertical");
 }
+
 float StyleBoxLine::get_style_margin(Margin p_margin) const {
-	ERR_FAIL_INDEX_V((int)p_margin, 4, thickness);
-	return thickness;
+	ERR_FAIL_INDEX_V((int)p_margin, 4, 0);
+
+	if (vertical) {
+		if (p_margin == MARGIN_LEFT || p_margin == MARGIN_RIGHT) {
+			return thickness / 2.0;
+		}
+	} else if (p_margin == MARGIN_TOP || p_margin == MARGIN_BOTTOM) {
+		return thickness / 2.0;
+	}
+
+	return 0;
 }
 Size2 StyleBoxLine::get_center_size() const {
 	return Size2();

@@ -93,35 +93,14 @@ void OS_JavaScript::send_notification_callback(int p_notification) {
 
 // Window (canvas)
 
-Point2 OS_JavaScript::compute_position_in_canvas(int x, int y) {
-	OS_JavaScript *os = get_singleton();
-	int canvas_x;
-	int canvas_y;
-	godot_js_display_canvas_bounding_rect_position_get(&canvas_x, &canvas_y);
-	int canvas_width;
-	int canvas_height;
-	emscripten_get_canvas_element_size(os->canvas_id, &canvas_width, &canvas_height);
-
-	double element_width;
-	double element_height;
-	emscripten_get_element_css_size(os->canvas_id, &element_width, &element_height);
-
-	return Point2((int)(canvas_width / element_width * (x - canvas_x)),
-			(int)(canvas_height / element_height * (y - canvas_y)));
+Point2 OS_JavaScript::compute_position_in_canvas(int p_x, int p_y) {
+	int point[2];
+	godot_js_display_compute_position(p_x, p_y, point, point + 1);
+	return Point2(point[0], point[1]);
 }
 
 bool OS_JavaScript::check_size_force_redraw() {
-	int canvas_width;
-	int canvas_height;
-	emscripten_get_canvas_element_size(canvas_id, &canvas_width, &canvas_height);
-	if (last_width != canvas_width || last_height != canvas_height) {
-		last_width = canvas_width;
-		last_height = canvas_height;
-		// Update the framebuffer size for redraw.
-		emscripten_set_canvas_element_size(canvas_id, canvas_width, canvas_height);
-		return true;
-	}
-	return false;
+	return godot_js_display_size_update() != 0;
 }
 
 EM_BOOL OS_JavaScript::fullscreen_change_callback(int p_event_type, const EmscriptenFullscreenChangeEvent *p_event, void *p_user_data) {
@@ -129,7 +108,7 @@ EM_BOOL OS_JavaScript::fullscreen_change_callback(int p_event_type, const Emscri
 	OS_JavaScript *os = get_singleton();
 	// Empty ID is canvas.
 	String target_id = String::utf8(p_event->id);
-	if (target_id.empty() || target_id == String::utf8(os->canvas_id)) {
+	if (target_id.empty() || target_id == String::utf8(&(os->canvas_id[1]))) {
 		// This event property is the only reliable data on
 		// browser fullscreen state.
 		os->video_mode.fullscreen = p_event->isFullscreen;
@@ -155,16 +134,13 @@ OS::VideoMode OS_JavaScript::get_video_mode(int p_screen) const {
 }
 
 Size2 OS_JavaScript::get_screen_size(int p_screen) const {
-
-	EmscriptenFullscreenChangeEvent ev;
-	EMSCRIPTEN_RESULT result = emscripten_get_fullscreen_status(&ev);
-	ERR_FAIL_COND_V(result != EMSCRIPTEN_RESULT_SUCCESS, Size2());
-	return Size2(ev.screenWidth, ev.screenHeight);
+	int size[2];
+	godot_js_display_screen_size_get(size, size + 1);
+	return Size2(size[0], size[1]);
 }
 
 void OS_JavaScript::set_window_size(const Size2 p_size) {
 
-	windowed_size = p_size;
 	if (video_mode.fullscreen) {
 		window_maximized = false;
 		set_window_fullscreen(false);
@@ -173,17 +149,14 @@ void OS_JavaScript::set_window_size(const Size2 p_size) {
 			emscripten_exit_soft_fullscreen();
 			window_maximized = false;
 		}
-		double scale = godot_js_display_pixel_ratio_get();
-		emscripten_set_canvas_element_size(canvas_id, p_size.x, p_size.y);
-		emscripten_set_element_css_size(canvas_id, p_size.x / scale, p_size.y / scale);
+		godot_js_display_desired_size_set(p_size.x, p_size.y);
 	}
 }
 
 Size2 OS_JavaScript::get_window_size() const {
-
-	int canvas[2];
-	emscripten_get_canvas_element_size(canvas_id, canvas, canvas + 1);
-	return Size2(canvas[0], canvas[1]);
+	int size[2];
+	godot_js_display_window_size_get(size, size + 1);
+	return Size2(size[0], size[1]);
 }
 
 void OS_JavaScript::set_window_maximized(bool p_enabled) {
@@ -228,20 +201,12 @@ void OS_JavaScript::set_window_fullscreen(bool p_enabled) {
 			// This must be called before requesting full screen.
 			emscripten_exit_soft_fullscreen();
 		}
-		EmscriptenFullscreenStrategy strategy;
-		strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;
-		strategy.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
-		strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-		strategy.canvasResizedCallback = NULL;
-		EMSCRIPTEN_RESULT result = emscripten_request_fullscreen_strategy(canvas_id, false, &strategy);
-		ERR_FAIL_COND_MSG(result == EMSCRIPTEN_RESULT_FAILED_NOT_DEFERRED, "Enabling fullscreen is only possible from an input callback for the HTML5 platform.");
-		ERR_FAIL_COND_MSG(result != EMSCRIPTEN_RESULT_SUCCESS, "Enabling fullscreen is only possible from an input callback for the HTML5 platform.");
-		// Not fullscreen yet, so prevent "windowed" canvas dimensions from
-		// being overwritten.
+		int result = godot_js_display_fullscreen_request();
+		ERR_FAIL_COND_MSG(result, "The request was denied. Remember that enabling fullscreen is only possible from an input callback for the HTML5 platform.");
 		entering_fullscreen = true;
 	} else {
 		// No logic allowed here, since exiting w/ ESC key won't use this function.
-		ERR_FAIL_COND(emscripten_exit_fullscreen() != EMSCRIPTEN_RESULT_SUCCESS);
+		ERR_FAIL_COND(godot_js_display_fullscreen_exit());
 	}
 }
 
@@ -589,7 +554,7 @@ OS::MouseMode OS_JavaScript::get_mouse_mode() const {
 
 	EmscriptenPointerlockChangeEvent ev;
 	emscripten_get_pointerlock_status(&ev);
-	return (ev.isActive && String::utf8(ev.id) == String::utf8(canvas_id)) ? MOUSE_MODE_CAPTURED : MOUSE_MODE_VISIBLE;
+	return (ev.isActive && String::utf8(ev.id) == String::utf8(&canvas_id[1])) ? MOUSE_MODE_CAPTURED : MOUSE_MODE_VISIBLE;
 }
 
 // Wheel
@@ -700,54 +665,47 @@ EM_BOOL OS_JavaScript::touchmove_callback(int p_event_type, const EmscriptenTouc
 }
 
 // Gamepad
-
-EM_BOOL OS_JavaScript::gamepad_change_callback(int p_event_type, const EmscriptenGamepadEvent *p_event, void *p_user_data) {
-
+void OS_JavaScript::gamepad_callback(int p_index, int p_connected, const char *p_id, const char *p_guid) {
 	InputDefault *input = get_singleton()->input;
-	if (p_event_type == EMSCRIPTEN_EVENT_GAMEPADCONNECTED) {
-
-		String guid = "";
-		if (String::utf8(p_event->mapping) == "standard")
-			guid = "Default HTML5 Gamepad";
-		input->joy_connection_changed(p_event->index, true, String::utf8(p_event->id), guid);
+	if (p_connected) {
+		input->joy_connection_changed(p_index, true, String::utf8(p_id), String::utf8(p_guid));
 	} else {
-		input->joy_connection_changed(p_event->index, false, "");
+		input->joy_connection_changed(p_index, false, "");
 	}
-	return true;
 }
 
 void OS_JavaScript::process_joypads() {
 
-	int joypad_count = emscripten_get_num_gamepads();
-	for (int joypad = 0; joypad < joypad_count; joypad++) {
-		EmscriptenGamepadEvent state;
-		EMSCRIPTEN_RESULT query_result = emscripten_get_gamepad_status(joypad, &state);
-		// Chromium reserves gamepads slots, so NO_DATA is an expected result.
-		ERR_CONTINUE(query_result != EMSCRIPTEN_RESULT_SUCCESS &&
-					 query_result != EMSCRIPTEN_RESULT_NO_DATA);
-		if (query_result == EMSCRIPTEN_RESULT_SUCCESS && state.connected) {
-
-			int button_count = MIN(state.numButtons, 18);
-			int axis_count = MIN(state.numAxes, 8);
-			for (int button = 0; button < button_count; button++) {
-
-				float value = state.analogButton[button];
-				if (String::utf8(state.mapping) == "standard" && (button == JOY_ANALOG_L2 || button == JOY_ANALOG_R2)) {
-					InputDefault::JoyAxis joy_axis;
-					joy_axis.min = 0;
-					joy_axis.value = value;
-					input->joy_axis(joypad, button, joy_axis);
-				} else {
-					input->joy_button(joypad, button, value);
-				}
-			}
-			for (int axis = 0; axis < axis_count; axis++) {
-
+	int32_t pads = godot_js_display_gamepad_sample_count();
+	int32_t s_btns_num = 0;
+	int32_t s_axes_num = 0;
+	int32_t s_standard = 0;
+	float s_btns[16];
+	float s_axes[10];
+	for (int idx = 0; idx < pads; idx++) {
+		int err = godot_js_display_gamepad_sample_get(idx, s_btns, &s_btns_num, s_axes, &s_axes_num, &s_standard);
+		if (err) {
+			continue;
+		}
+		for (int b = 0; b < s_btns_num; b++) {
+			float value = s_btns[b];
+			// Buttons 6 and 7 in the standard mapping need to be
+			// axis to be handled as JOY_ANALOG by Godot.
+			if (s_standard && (b == 6 || b == 7)) {
 				InputDefault::JoyAxis joy_axis;
-				joy_axis.min = -1;
-				joy_axis.value = state.axis[axis];
-				input->joy_axis(joypad, axis, joy_axis);
+				joy_axis.min = 0;
+				joy_axis.value = value;
+				int a = b == 6 ? JOY_ANALOG_L2 : JOY_ANALOG_R2;
+				input->joy_axis(idx, a, joy_axis);
+			} else {
+				input->joy_button(idx, b, value);
 			}
+		}
+		for (int a = 0; a < s_axes_num; a++) {
+			InputDefault::JoyAxis joy_axis;
+			joy_axis.min = -1;
+			joy_axis.value = s_axes[a];
+			input->joy_axis(idx, a, joy_axis);
 		}
 	}
 }
@@ -821,6 +779,11 @@ void OS_JavaScript::initialize_core() {
 
 Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, int p_audio_driver) {
 
+	video_mode = p_desired;
+	// fullscreen_change_callback will correct this if the request is successful.
+	video_mode.fullscreen = false;
+	godot_js_display_setup_canvas(video_mode.width, video_mode.height, video_mode.fullscreen); // Handle contextmenu, webglcontextlost
+
 	swap_ok_cancel = godot_js_display_is_swap_ok_cancel() == 1;
 
 	EmscriptenWebGLContextAttributes attributes;
@@ -889,21 +852,6 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 
 	video_driver_index = p_video_driver;
 
-	video_mode = p_desired;
-	// fullscreen_change_callback will correct this if the request is successful.
-	video_mode.fullscreen = false;
-	// Emscripten only attempts fullscreen requests if the user input callback
-	// was registered through one its own functions, so request manually for
-	// start-up fullscreen.
-	if (p_desired.fullscreen) {
-		godot_js_display_window_request_fullscreen();
-	}
-	if (godot_js_config_is_resize_on_start()) {
-		set_window_size(Size2(video_mode.width, video_mode.height));
-	} else {
-		set_window_size(get_window_size());
-	}
-
 	AudioDriverManager::initialize(p_audio_driver);
 	visual_server = memnew(VisualServerRaster());
 #ifndef NO_THREADS
@@ -921,9 +869,6 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 #define SET_EM_WINDOW_CALLBACK(ev, cb)                                                         \
 	result = emscripten_set_##ev##_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, false, &cb); \
 	EM_CHECK(ev)
-#define SET_EM_CALLBACK_NOTARGET(ev, cb)                      \
-	result = emscripten_set_##ev##_callback(NULL, true, &cb); \
-	EM_CHECK(ev)
 	// These callbacks from Emscripten's html5.h suffice to access most
 	// JavaScript APIs.
 	SET_EM_CALLBACK(canvas_id, mousedown, mouse_button_callback)
@@ -938,9 +883,6 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 	SET_EM_CALLBACK(canvas_id, keypress, keypress_callback)
 	SET_EM_CALLBACK(canvas_id, keyup, keyup_callback)
 	SET_EM_CALLBACK(EMSCRIPTEN_EVENT_TARGET_DOCUMENT, fullscreenchange, fullscreen_change_callback)
-	SET_EM_CALLBACK_NOTARGET(gamepadconnected, gamepad_change_callback)
-	SET_EM_CALLBACK_NOTARGET(gamepaddisconnected, gamepad_change_callback)
-#undef SET_EM_CALLBACK_NOTARGET
 #undef SET_EM_CALLBACK
 #undef EM_CHECK
 
@@ -953,6 +895,7 @@ Error OS_JavaScript::initialize(const VideoMode &p_desired, int p_video_driver, 
 			MainLoop::NOTIFICATION_WM_FOCUS_OUT);
 	godot_js_display_paste_cb(&OS_JavaScript::update_clipboard_callback);
 	godot_js_display_drop_files_cb(&OS_JavaScript::drop_files_callback);
+	godot_js_display_gamepad_cb(&OS_JavaScript::gamepad_callback);
 
 	visual_server->init();
 
@@ -996,7 +939,7 @@ bool OS_JavaScript::main_loop_iterate() {
 		godot_js_os_fs_sync(&OS_JavaScript::fs_sync_callback);
 	}
 
-	if (emscripten_sample_gamepad_data() == EMSCRIPTEN_RESULT_SUCCESS)
+	if (godot_js_display_gamepad_sample() == OK)
 		process_joypads();
 
 	if (just_exited_fullscreen) {
@@ -1008,21 +951,23 @@ bool OS_JavaScript::main_loop_iterate() {
 			strategy.canvasResizedCallback = NULL;
 			emscripten_enter_soft_fullscreen(canvas_id, &strategy);
 		} else {
-			set_window_size(Size2(windowed_size.width, windowed_size.height));
+			godot_js_display_size_update();
 		}
 		just_exited_fullscreen = false;
 	}
-
-	int canvas[2];
-	emscripten_get_canvas_element_size(canvas_id, canvas, canvas + 1);
-	video_mode.width = canvas[0];
-	video_mode.height = canvas[1];
-	if (!window_maximized && !video_mode.fullscreen && !just_exited_fullscreen && !entering_fullscreen) {
-		windowed_size.width = canvas[0];
-		windowed_size.height = canvas[1];
-	}
-
 	return Main::iteration();
+}
+
+int OS_JavaScript::get_screen_dpi(int p_screen) const {
+	return godot_js_display_screen_dpi_get();
+}
+
+float OS_JavaScript::get_screen_scale(int p_screen) const {
+	return godot_js_display_pixel_ratio_get();
+}
+
+float OS_JavaScript::get_screen_max_scale() const {
+	return get_screen_scale();
 }
 
 void OS_JavaScript::delete_main_loop() {
@@ -1065,6 +1010,10 @@ Error OS_JavaScript::kill(const ProcessID &p_pid) {
 int OS_JavaScript::get_process_id() const {
 
 	ERR_FAIL_V_MSG(0, "OS::get_process_id() is not available on the HTML5 platform.");
+}
+
+int OS_JavaScript::get_processor_count() const {
+	return godot_js_os_hw_concurrency_get();
 }
 
 bool OS_JavaScript::_check_internal_feature_support(const String &p_feature) {

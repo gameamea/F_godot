@@ -45,8 +45,6 @@
 #include "core/project_settings.h"
 #include "drivers/unix/syslog_logger.h"
 
-#include "semaphore_iphone.h"
-
 #import "app_delegate.h"
 #import "device_metrics.h"
 #import "godot_view.h"
@@ -104,7 +102,6 @@ String OSIPhone::get_unique_id() const {
 void OSIPhone::initialize_core() {
 
 	OS_Unix::initialize_core();
-	SemaphoreIphone::make_default();
 
 	set_data_dir(data_dir);
 };
@@ -114,6 +111,8 @@ int OSIPhone::get_current_video_driver() const {
 }
 
 void OSIPhone::start() {
+	godot_ios_plugins_initialize();
+
 	Main::start();
 
 	if (joypad_iphone) {
@@ -181,21 +180,6 @@ Error OSIPhone::initialize(const VideoMode &p_desired, int p_video_driver, int p
 
 	input = memnew(InputDefault);
 
-#ifdef GAME_CENTER_ENABLED
-	game_center = memnew(GameCenter);
-	Engine::get_singleton()->add_singleton(Engine::Singleton("GameCenter", game_center));
-#endif
-
-#ifdef STOREKIT_ENABLED
-	store_kit = memnew(InAppStore);
-	Engine::get_singleton()->add_singleton(Engine::Singleton("InAppStore", store_kit));
-#endif
-
-#ifdef ICLOUD_ENABLED
-	icloud = memnew(ICloud);
-	Engine::get_singleton()->add_singleton(Engine::Singleton("ICloud", icloud));
-	//icloud->connect();
-#endif
 	ios = memnew(iOS);
 	Engine::get_singleton()->add_singleton(Engine::Singleton("iOS", ios));
 
@@ -210,7 +194,6 @@ MainLoop *OSIPhone::get_main_loop() const {
 };
 
 void OSIPhone::set_main_loop(MainLoop *p_main_loop) {
-
 	main_loop = p_main_loop;
 
 	if (main_loop) {
@@ -334,23 +317,7 @@ void OSIPhone::finalize() {
 		memdelete(ios);
 	}
 
-#ifdef GAME_CENTER_ENABLED
-	if (game_center) {
-		memdelete(game_center);
-	}
-#endif
-
-#ifdef STOREKIT_ENABLED
-	if (store_kit) {
-		memdelete(store_kit);
-	}
-#endif
-
-#ifdef ICLOUD_ENABLED
-	if (icloud) {
-		memdelete(icloud);
-	}
-#endif
+	godot_ios_plugins_deinitialize();
 
 	visual_server->finish();
 	memdelete(visual_server);
